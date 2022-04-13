@@ -9,3 +9,7 @@ To install dlsrules run:
 ```r
 devtools::install_git(url="https://gitlab.hafogvatn.is/demersal-division/dlsrules.git")
 ```
+
+## Demonstation
+
+A demonstation assessment of bling is found in folder 'demos'
