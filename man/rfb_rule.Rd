@@ -9,13 +9,13 @@ rfb_rule(data, prev_tac, Itrigger = NULL, stock_k, len_ratio)
 \arguments{
 \item{data}{A data-frame containing the columns 'year' and 'index'}
 
+\item{prev_tac}{The catch advice for the previous advisory year}
+
 \item{Itrigger}{Itrigger which is defined as 1.4*Iloss. Generally, Iloss is defined as the lowest observed index value (this is assumed if Itrigger is NULL)}
 
 \item{stock_k}{The growth parameter 'K'}
 
 \item{len_ratio}{Component 'f' of the rfb rule}
-
-\item{tac}{The catch advice for the previous advisory year}
 }
 \value{
 A dataframe with the advice for the current year and information used to reach this value. 'final_advice' is the advice after the biomass safeguard is considered, the 'initial_advice' is the value prior to this step.

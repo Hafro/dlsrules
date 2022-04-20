@@ -54,7 +54,7 @@ two_over_three <- function(data,
 #' @description Calculates the advised catch based on the category 3 RFB rule.
 #'
 #' @param data A data-frame containing the columns 'year' and 'index'
-#' @param tac The catch advice for the previous advisory year
+#' @param prev_tac The catch advice for the previous advisory year
 #' @param Itrigger Itrigger which is defined as 1.4*Iloss. Generally, Iloss is defined as the lowest observed index value (this is assumed if Itrigger is NULL)
 #' @param stock_k The growth parameter 'K'
 #' @param len_ratio Component 'f' of the rfb rule
@@ -110,6 +110,74 @@ rfb_rule <- function(data,
                                         'final_advice',
                                         'advice_change'),
                           value = c(len_ratio,
+                                    bsg,
+                                    imult,
+                                    initial_tac,
+                                    ifelse(tac == initial_tac, 0, 1),
+                                    tac,
+                                    round((tac-prev_tac)/prev_tac*100, 0))))
+
+  return(as_tibble(out))
+}
+
+#' @title F-proxy rule for category 3 stocks
+#' @description Calculates the advised catch based on the category 3 CHR rule.
+#'
+#' @param data A data-frame containing the columns 'year' and 'index'
+#' @param prev_tac The catch advice for the previous advisory year
+#' @param fproxy f-proxy
+#' @param Itrigger Itrigger which is defined as 1.4*Iloss. Generally, Iloss is defined as the lowest observed index value (this is assumed if Itrigger is NULL)
+#' @param stock_k The growth parameter 'K'
+#'
+#' @return A dataframe with the advice for the current year and information used to reach this value. 'final_advice' is the advice after the biomass safeguard is considered, the 'initial_advice' is the value prior to this step.
+#' @export
+fproxy_rule <- function(data,
+                        prev_tac,
+                        fproxy,
+                        Itrigger = NULL,
+                        stock_k){
+
+  if (!all(c('year', 'index') %in% names(data))){
+    stop("The input dataframe must have the columns 'year' and 'index'")
+  }
+
+  ## Get current indice
+  data <- data[order(data$year, decreasing = TRUE),]
+  Inow <- data$index[1]
+
+  ## If Itrigger not specified, assume is lowest value
+  if (is.null(Itrigger)){
+    Itrigger <- 1.4*min(data$index, na.rm = TRUE)
+    cat('Assuming Iloss is equal to the lowest observed index value of ', Itrigger/1.4)
+  }
+
+  ## Biomass safeguard
+  bsg <- biomass_safeguard(Inow = Inow, Itrigger = Itrigger)
+
+  ## Multiplier based on stock growth
+  imult <- multiplier_lookup(stock_k)
+
+  ## Calculate prelininary advice
+  initial_tac <- Inow * fproxy * bsg * imult
+
+  ## Apply stability clause for final tac
+  tac <- stability_clause(tac = initial_tac,
+                          prev_tac = prev_tac,
+                          bsg = bsg)
+
+  ## Gather output
+  out <- rbind(data.frame(Component = 'previous_advice',
+                          value = prev_tac),
+               data.frame(Component = c('Index',
+                                        'fproxy',
+                                        'biomass_safeguard',
+                                        'multiplier',
+                                        'initial_advice',
+                                        'stability_clause_applied',
+                                        'final_advice',
+                                        'advice_change'),
+                          value = c(Inow,
+                                    fproxy,
                                     bsg,
                                     imult,
                                     initial_tac,
