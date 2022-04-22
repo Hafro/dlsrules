@@ -76,7 +76,7 @@ print(calc_ratio(idata))
 print(mean(tail(idata$index, n = 2)))
 
 ## Iloss - using the lowest index value for CAS
-Iloss <- sort(idata$index, decreasing = FALSE)
+Iloss <- min(idata$index) #sort(idata$index, decreasing = FALSE)[1]
 
 ## Itrigger equals 1.4 * Iloss
 Itrigger <- 1.4*Iloss
@@ -131,12 +131,6 @@ meanL.year <-
   group_by(year) %>%
   summarise(L = sum(length*n)/sum(n))
 
-meanL.year2 <-
-  ldist.year %>%
-  #filter(length > Lc) %>%
-  group_by(year) %>%
-  summarise(L = sum(length*n)/sum(n))
-
 ## Mean length of last year (2021)
 meanL <- meanL.year[meanL.year$year == lastyear, 'L']$L
 
@@ -158,6 +152,16 @@ fproxy <- mean(alldata$hr[year_ind])
 
 ## Run rules:
 
+## FIRST DOUBLE CHECK LAST YEAR ADVICE
+(idata[idata$year == lastyear, 'index'] * prev_fproxy) %>% uncertainty_cap(tac_lastyear)
+
+## Advice based on old rule for current assessment
+(idata[idata$year == tyr, 'index'] * prev_fproxy) %>% uncertainty_cap(tac)
+
+## Same with presuationary buffer, as F is greater than Fproxy?
+(idata[idata$year == tyr, 'index'] * prev_fproxy) %>% uncertainty_cap(tac) %>% precautionary_buffer()
+
+## NEW RULES
 ## Advice for current assessment based on new rule and fproxy from ices guidelines
 fproxy_rule(data = idata,
             prev_tac = tac,
@@ -172,11 +176,8 @@ fproxy_rule(data = idata,
             Itrigger = Itrigger,
             stock_k = tegund_k)
 
-## Check advice based on old rule for last year
-#two_over_three(data = idata %>% filter(year != 2021),
-#               prev_tac = tac_lastyear,
-#               pre_buffer = apply_precuationary_buffer)
-#print(tac)
+
+
 
 
 
