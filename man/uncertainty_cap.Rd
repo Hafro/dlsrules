@@ -4,7 +4,7 @@
 \alias{uncertainty_cap}
 \title{Uncertainty cap}
 \usage{
-uncertainty_cap(tac, prev_tac, cap)
+uncertainty_cap(tac, prev_tac, cap = 20)
 }
 \arguments{
 \item{tac}{The advised catch for the current assessment period}

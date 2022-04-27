@@ -78,7 +78,7 @@ stability_clause <- function(tac, prev_tac, bsg){
 #'
 #' @return The advised catch after the uncertainty cap has been applied
 #' @export
-uncertainty_cap <- function(tac, prev_tac, cap){
+uncertainty_cap <- function(tac, prev_tac, cap = 20){
   upper_cap <- 1 + cap/100
   lower_cap <- 1 - cap/100
   return(min(max(lower_cap*prev_tac, tac), upper_cap*prev_tac))

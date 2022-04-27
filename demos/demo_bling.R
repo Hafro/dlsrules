@@ -12,7 +12,7 @@ library(tidypax)
 # library(fitdistrplus)
 
 ## Open mar connection
-con <- connect_mar()
+mar <- connect_mar()
 
 ## -----------------------------------------------------------------------------
 
@@ -39,18 +39,21 @@ apply_precuationary_buffer <- FALSE
 ## Indices
 ## -----------------------------------------------------------------------------
 
-## Load
-load("/net/hafkaldi/export/u2/reikn/R/SurveyWork/SMH/Allaggrsmhindex.rdata")
-idata <-
-  Allaggrsmhindex %>%
-  filter(species == tegund_nr,
-         svaedi == 'Heild',
-         fixed == 0,
-         skipShallow == 0,
-         ar > 1999) %>%
-  rename(year = ar) %>%
-  group_by(year) %>%
-  summarise(index = sum(ifelse(lengd == 10,bio.staerri,0)))
+## Biomass index
+idata <- si_stations(mar) %>%
+  filter(nvl(tow_number,0) %in% 0:75,
+         gear_id %in% 77:78,
+         sampling_type == 35) %>%
+  si_by_length(species = tegund_nr) %>%
+  si_add_strata() %>%
+  filter(stratification == 'new_strata') %>%
+  si_by_strata() %>%
+  si_by_year() %>%
+  filter(year != 2011,
+         year > 1999) %>%
+  select(year, index = b) %>%
+  arrange(year) %>%
+  collect(n = Inf)
 
 ## Check two over three
 print(calc_ratio(idata))
@@ -68,7 +71,7 @@ Itrigger <- 1.4*Iloss
 
 ## Commercial length distribution by year
 ldist.year <-
-  ldist_by_year(con, sampling_type = c(1,2,8), species_nr = tegund_nr) %>%
+  ldist_by_year(mar, sampling_type = c(1,2,8), species_nr = tegund_nr) %>%
   filter(mfdb_gear_code %in% c('BMT', 'LLN'),
          year > 1975) %>% ## Removing measurements from 1939 (?)
   group_by(year, length) %>%

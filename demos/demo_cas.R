@@ -42,16 +42,18 @@ apply_precuationary_buffer <- FALSE
 ## Indices and landings
 ## -----------------------------------------------------------------------------
 
-## Load
-load('/net/hafkaldi/export/u2/reikn/R/SurveyWork/SMB/Allaggrsmbindex.rdata')
-
 ## Biomass index
-idata <- Allaggrsmbindex %>%
-  filter(species == tegund_nr,
-         #skipShallow == 1,
-         fixed == 0) %>%
-  filter(lengd == 5,svaedi == "Heild") %>%
-  select(year = ar, index = bio.staerri)
+idata <- si_stations(mar) %>%
+  filter(sampling_type == 30, nvl(tow_number,0) %in% 0:35) %>%
+  si_by_length(species = tegund_nr) %>%
+  si_add_strata() %>%
+  filter(stratification == 'new_strata') %>%
+  si_by_strata() %>%
+  si_by_year() %>%
+  select(year, index = b) %>%
+  arrange(year) %>%
+  collect(n = Inf)
+
 
 ## Landings
 landings <- landadur_afli(mar) %>%
@@ -153,13 +155,13 @@ fproxy <- mean(alldata$hr[year_ind])
 ## Run rules:
 
 ## FIRST DOUBLE CHECK LAST YEAR ADVICE
-(idata[idata$year == lastyear, 'index'] * prev_fproxy) %>% uncertainty_cap(tac_lastyear)
+(idata[idata$year == lastyear, 'index']$index * prev_fproxy) %>% uncertainty_cap(tac_lastyear)
 
 ## Advice based on old rule for current assessment
-(idata[idata$year == tyr, 'index'] * prev_fproxy) %>% uncertainty_cap(tac)
+(idata[idata$year == tyr, 'index']$index * prev_fproxy) %>% uncertainty_cap(tac)
 
 ## Same with presuationary buffer, as F is greater than Fproxy?
-(idata[idata$year == tyr, 'index'] * prev_fproxy) %>% uncertainty_cap(tac) %>% precautionary_buffer()
+(idata[idata$year == tyr, 'index']$index * prev_fproxy) %>% uncertainty_cap(tac) %>% precautionary_buffer()
 
 ## NEW RULES
 ## Advice for current assessment based on new rule and fproxy from ices guidelines
