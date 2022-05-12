@@ -339,7 +339,7 @@ out2 %>%
   geom_line(aes(linf, value),
             data = tibble(value = c(min(out2$value), filter(out2, linf == round(q95,0))$value), linf = c(q95, q95)), col = 'yellow', size = 1.5) +
   geom_line(aes(linf, value),
-            data = tibble(value = c(min(out2$value), filter(out2, linf == round(160,0))$value), linf = c(round(linf,0), round(linf,0))), col = 'green', size = 1.5)
+            data = tibble(value = c(min(out2$value), out2[out2$linf == as.integer(linf),]$value), linf = c(round(linf,0), round(linf,0))), col = 'green', size = 1.5)
 
 
 ## Check output for each linf est.
