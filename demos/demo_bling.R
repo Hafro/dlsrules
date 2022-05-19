@@ -9,6 +9,7 @@ library(tidyverse)
 library(mar)
 library(dlsrules)
 library(tidypax)
+library(mfdb)
 # library(fitdistrplus)
 
 ## Open mar connection
@@ -33,7 +34,8 @@ tegund_k <- 0.1
 lbinwidth <- 1
 
 ## Whether or not to apply the precautionary buffer - this is only relevant for the old 2/3 rule
-apply_precuationary_buffer <- FALSE
+# LAst applied in 2019 for blue ling
+apply_precuationary_buffer <- TRUE
 
 ## -----------------------------------------------------------------------------
 ## Indices
@@ -59,8 +61,8 @@ idata <- si_stations(mar) %>%
 print(calc_ratio(idata))
 print(mean(tail(idata$index, n = 2)))
 
-## Iloss - using the second lowest index value for blue ling
-Iloss <- sort(idata$index, decreasing = FALSE)[2]
+## Iloss - using lowest value, not the second lowest
+Iloss <- min(idata$index) #sort(idata$index, decreasing = FALSE)[1]
 
 ## Itrigger equals 1.4 * Iloss
 Itrigger <- 1.4*Iloss
@@ -118,8 +120,37 @@ meanL.year <-
 ## Mean length of last year (2021)
 meanL <- meanL.year[meanL.year$year == lastyear, 'L']$L
 
-## L infinity assumed to be maximum observed length
+## -----------------------------------------------------------------------------
+## L-Infinity
+# Use max length to start
 linf <- max(ldist.all$length)
+
+## Other possible definitions of L-infinity:
+q99 <- quantile(rep(ldist.all$length, ldist.all$n), 0.99) # 99th percentile
+q95 <- quantile(rep(ldist.all$length, ldist.all$n), 0.95) # 95th percentile
+fishbase_linf <- 160
+
+## Von B
+mdb <- mfdb('Iceland',db_params=list(host='mfdb.hafro.is'))
+
+mfdb_dplyr_sample(mdb) %>%
+  dplyr::filter(species %in% c('BLI'), data_source=='iceland-aldist',
+                sampling_type %in% c('SEA')) %>%
+  dplyr::collect(n=Inf) -> fff_K
+
+mfdb_disconnect(mdb)
+
+age.data.bli <- filter(fff_K, !is.na(age))
+#weight.data.bli <- filter(age.data.bli,!is.na(weight))
+bli.vonB.par <- nls(length~Linf*(1-exp(-K*(age-t0))), data=age.data.bli, start=list(Linf=120, K=0.1, t0=0))
+
+vonb_linf <- coef(bli.vonB.par)[['Linf']]
+print(paste('vonb K = ', coef(bli.vonB.par)[['K']]))
+
+plot(age.data.bli$age, age.data.bli$length)
+predict(bli.vonB.par, newdata = data.frame(age = seq(0,20,by = 0.1))) -> preds
+lines(seq(0,20,by = 0.1), preds, col = "red")
+
 ## Can also try:
 # linf <- max(ldist.all$length) / 0.95
 
@@ -148,6 +179,56 @@ two_over_three(data = idata,
 #               prev_tac = tac_lastyear,
 #               pre_buffer = apply_precuationary_buffer)
 #print(tac)
+
+## -----------------------------------------------------------------------------
+
+## ------------------------------------------------------------------------------
+## Sensitivity analyses for L-infinity
+## -----------------------------------------------------------------------------
+
+test_linf <- 100:200
+
+##" Loop over
+res <- lapply(test_linf, function(x){
+  ## Advice for current assessment based on new rule
+  tmp <- rfb_rule(data = idata,
+                  prev_tac = tac,
+                  Itrigger = Itrigger,
+                  stock_k = tegund_k,
+                  len_ratio = calc_f(meanL = meanL, Lc = Lc, Linf = x))
+  tmp$lf <- x
+  return(tmp)
+})
+out <- do.call("rbind", res)
+
+out2 <-
+  out %>% filter(Component == 'final_advice') %>% distinct()
+
+linf_df <-
+  tibble(TAC = c(c(min(out2$value), filter(out2, lf == linf)$value),
+                   c(min(out2$value), filter(out2, lf == round(q99,0))$value),
+                   c(min(out2$value), filter(out2, lf == round(q95,0))$value),
+                   c(min(out2$value), filter(out2, lf == round(fishbase_linf,0))$value)),
+         x = c(linf, linf, q99, q99, q95, q95, fishbase_linf, fishbase_linf),
+         LInf_measure = rep(c('Max_Len', 'Q99_Len', 'Q95_Len', 'Fishbase_LInf'), each = 2))
+
+## Plot sensitivity of tac to linf
+out2 %>%
+  rename(L_Infinity = lf, TAC = value) %>%
+  ggplot(aes(L_Infinity, TAC)) +
+  geom_line(size = 1.5) +
+  geom_line(aes(x, TAC,  col = LInf_measure), data = linf_df, size = 1.5)
+
+
+## Check output for each linf est.
+## Max length
+filter(out, LInfinity == linf)
+## Q99
+filter(out, LInfinity == q99)
+## Q95
+filter(out, LInfinity == q95)
+## Von b
+out[out$LInfinity == as.integer(vonb_linf),]
 
 
 
