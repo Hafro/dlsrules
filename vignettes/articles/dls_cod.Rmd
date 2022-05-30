@@ -1,0 +1,429 @@
+---
+title: "DLS cod"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE,
+  collapse = TRUE,
+  error = TRUE,
+  comment = "#>"
+)
+```
+
+```{r LIBRARIES}
+# devtools::install_git(url="https://gitlab.hafogvatn.is/demersal-division/dlsrules.git")
+library(tidyverse)
+library(mar)
+library(dlsrules)
+library(tidypax)
+con <- connect_mar()
+```
+
+## The Fproxy rule
+
+The (Icelandic) rule is conventionally written as:
+
+$C = F_{proxy}I$
+
+ICES prefers to introduce it in this form:
+
+$C = I F_{proxy}bm$
+
+When relating this to the fundamental fisheries equation:
+
+$C_y = F_y B_y$
+
+and/or it's illusive derivative:
+
+$MSY = F_{MSY}B_{MSY}$
+
+we rearrange:
+
+$C = (mbF_{proxy})I$
+
+Now the b here is just:
+
+$b = min(1, I_y/Itrigger)$
+
+Ergo, besides the $m$ the rule is just another form of the icod advisory rule, where
+
+$I = qB$
+
+which means effectively that the $q$ gets embedded in the $F_{proxy}$. Just to derive it from fundamental equation:
+
+$C_y = F_y B_y$
+
+$C_y = F_y I_y/q$
+
+$C_y = (F_y/q) I_y$
+
+$C_y = F_{proxy}I_y$
+
+Including the sliding part into the advisory rule we have:
+
+$C_y = (min(1, I_y/I_{trigger})F_{proxy})I_y$
+
+Including the $m$ term in the ICES Fproxy rule is really just to create confusion. It is a time invariant parameter (just like $I_{trigger}$ and $F_{proxy}$) and hence should be included in the derivation of $F_{proxy}$, i.e.:
+
+$F_{proxy} = mF_{init}$
+
+Now, I challenge anybody to derive ICES ratio rule from the principle equation.
+
+
+
+## cod - fproxy smb
+
+```{r SETTINGS}
+tegund_nr <- 1
+tac <- 223
+tac_lastyear <- 250
+prev_fproxy <- 0.2 # not really
+tegund_k <- 0.1    # from Muggur's presentation (2021/07 WKILIFE Subgroup)
+linf <- 150
+calc_linf <- FALSE
+lbinwidth <- 1     # bindwidths
+apply_precuationary_buffer <- FALSE
+mfdb <- c('BMT', 'LLN', 'GIL')
+
+tyr <- lubridate::now() %>% lubridate::year()
+lastyear <- tyr - 1
+```
+
+
+```{r DATA}
+# Commercial length distributions ----------------------------------------------
+ldist.year <-
+  ldist_by_year(con, sampling_type = c(1,2,8), species_nr = tegund_nr) %>%
+  filter(mfdb_gear_code %in% mfdb) %>%
+  filter(year %in% 1975:lastyear) %>% 
+  group_by(year, length) %>%
+  summarise(n = sum(n, na.rm = TRUE),
+            .groups = "drop") %>%
+  collect(n = Inf) %>% 
+  as_tibble()
+if(calc_linf) linf <- max(ldist.all$length) # not really
+
+# Biomass index ----------------------------------------------------------------
+idata <- 
+  si_stations(con) %>%
+  filter(sampling_type == 30, nvl(tow_number,0) %in% 0:35) %>%
+  si_by_length(species = tegund_nr) %>%
+  si_add_strata() %>%
+  filter(stratification == 'new_strata') %>%
+  si_by_strata() %>%
+  si_by_year() %>%
+  select(year, index = b) %>%
+  arrange(year) %>%
+  collect(n = Inf) %>% 
+  mutate(index = index / 1e3)
+# Landings ---------------------------------------------------------------------
+landings <- 
+  landadur_afli(con) %>%
+  filter(tegund_nr == local(tegund_nr),
+         ices_svaedi %like% '5a%',
+         ar %in% 1985:lastyear) %>%
+  group_by(ar) %>%
+  summarise(catch = sum(magn_oslaegt)/1e3) %>%
+  rename(year = ar) %>%
+  arrange(year) %>%
+  collect(n = Inf) %>% 
+  mutate(catch = catch / 1e3)
+```
+
+```{r CALCULATIONS}
+# MSY proxy reference catch length ---------------------------------------------
+ldist.all <-
+  ldist.year %>%
+  group_by(length) %>%
+  # NOTE: Sum used in Will's demo
+  summarise(N = sum(n),
+            n = mean(n))
+# Alternative to Will's code, not double tested
+Lc <- 
+  ldist.all %>% 
+  filter(n > 0.5 * max(n)) %>% 
+  # could also have used slice(1) below
+  filter(length == min(length)) %>% 
+  pull(length)
+# Calculate MSY proxy reference catch length
+trl <- target_reference_length(Lc, linf)
+
+meanL.year <-
+  ldist.year %>%
+  filter(length > Lc) %>%
+  group_by(year) %>%
+  summarise(L = sum(length * n) / sum(n)) %>% 
+  mutate(f = calc_f(L, Lc, linf),
+         above = ifelse(L > trl, TRUE, FALSE))
+
+# Merge survey, landings and length summaries ----------------------------------
+bio <- 
+  fishvise::read_separ("/u2/reikn/Tac/2022/01-cod/ass/mup/smx", ".", Scale = 1000)$rby %>% 
+  select(year, bio, fbar) %>% 
+  as_tibble()
+rby <-
+  idata %>%
+  left_join(landings, by = 'year') %>%
+  mutate(hr = catch/index) %>% 
+  left_join(meanL.year) %>% 
+  left_join(bio)
+
+# Calculate survey reference points---------------------------------------------
+fproxy <- 
+  rby %>% 
+  filter(above) %>% 
+  pull(hr) %>% 
+  mean()
+Iloss <- min(idata$index)
+Itrigger <- 1.4 * Iloss
+
+refs <- 
+  tibble(what = c("Iloss", "Itrigger", "Fproxy", "TargetL"),
+         val = c(Iloss, Itrigger, fproxy, trl),
+         var = c("index", "index", "hr", "L"))
+```
+
+```{r VIEW}
+rby %>%
+  select(year, above, L, f) %>% 
+  gather(var, val, L:f) %>% 
+  ggplot(aes(year, val)) +
+  theme_bw(base_size = 12) +
+  geom_line(colour = "grey") +
+  geom_point(aes(colour = above)) +
+  facet_grid(var ~ ., scales = "free_y") +
+  scale_colour_brewer(palette = "Set1") +
+  theme(legend.position = "none") +
+  labs(x = NULL, y = NULL,
+       title = "Length stuff")
+rby.long <- 
+  rby %>% 
+  select(year:hr, L) %>% 
+  gather(var, val, -year)
+rby.long %>% 
+  ggplot(aes(year, val)) +
+  theme_bw(base_size = 13) +
+  geom_line() +
+  geom_hline(data = refs, aes(yintercept = val)) +
+  facet_wrap(~ var, scales = "free_y") +
+  expand_limits(y = 0) %>% 
+  labs(x = NULL, y = NULL,
+       title = "Stock summary")
+
+hcr <- 
+  tibble(index = c(0, Itrigger, Inf),
+         hr = c(0, fproxy, fproxy))
+
+rby %>% 
+  ggplot(aes(index, hr)) +
+  theme_bw(base_size = 14) +
+  geom_line(data = hcr, colour = "grey", lwd = 3) +
+  geom_path(colour = "grey") +
+  geom_point(aes(colour = year), size = 7, alpha = 0.5) +
+  #geom_point(size = 7, alpha = 0.4) +
+  geom_text(aes(label = str_sub(year, 3)), colour = "red",
+            angle = 45, size = 4) +
+  expand_limits(x = 0, y = 0) +
+  scale_colour_viridis_c(direction = -1) +
+  labs(x = "Survey biomass", y = "Fishing pressure",
+       title = "The HCR") +
+  theme(legend.position = "none")
+```
+
+## Contemporaneous retro advice
+
+Note: No feeback in the retro
+
+```{r FPROXY}
+# fproxy_rule(data = idata,
+#             prev_tac = tac,
+#             fproxy = fproxy,
+#             Itrigger = Itrigger,
+#             stock_k = tegund_k)
+
+# A retro-loop
+YRS <- 1985:2022
+# First years advice, just use teh "initial_advice"
+first_advice <- 
+  prev_advice <- 
+  rby %>% 
+  filter(year == YRS[1]) %>% 
+  fproxy_rule(prev_tac = tac,
+              fproxy = fproxy,
+              Itrigger = Itrigger,
+              stock_k = tegund_k) %>% 
+  filter(Component == "initial_advice") %>% 
+  pull(value)
+res <- list()
+for(y in 1:length(YRS)) {
+  res[[y]] <-
+    rby %>% 
+    filter(year <= YRS[y]) %>%
+    fproxy_rule(prev_tac = prev_advice,
+                fproxy = fproxy,
+                Itrigger = Itrigger,
+                stock_k = tegund_k)
+  # for the next years loop
+  prev_advice <-
+    res[[y]] %>% 
+    filter(Component == "final_advice") %>% 
+    pull(value)
+}
+names(res) <- YRS
+advice.fproxy <- 
+  bind_rows(res, .id = "year") %>% 
+  mutate(year = as.integer(year))
+advice <- 
+  readxl::read_excel("/u2/reikn/Tac/2020/01/HCR/data-raw/advice.xlsx")
+rbx <- 
+  fishvise::read_separ("/u2/reikn/Tac/2022/01-cod/ass/mup/smx", ".", Scale = 1000)
+rule <- 
+  rbx$rby %>% 
+  filter(year %in% 1985:2022) %>% 
+  # should think about the lag here
+  mutate(mult = ifelse(ssb <= 220, ssb/220, 1),
+         advice = 0.2 * mult * bio,
+         base = "0.2bio") %>% 
+  select(year, advice, base)
+advice.all <- 
+  bind_rows(rule,
+            advice.fproxy %>% 
+              filter(Component == "final_advice") %>% 
+              select(year, advice = value) %>% 
+              mutate(base = "fproxy"),
+            advice %>% 
+              select(year = qYear, advice = advise_mri) %>% 
+              mutate(base = "mri"),
+            rby %>% 
+              select(year, advice = catch) %>% 
+              mutate(base = "catch"))
+
+prev_advice <- first_advice
+YRS <- 1989:2022
+res <- list()
+for(y in 1:length(YRS)) {
+  res[[y]] <-
+    rby %>% 
+    filter(year <= YRS[y]) %>%
+    dlsrules::rfb_rule(prev_tac = prev_advice,
+                       Itrigger = Itrigger,
+                       stock_k = tegund_k,
+                       len_ratio = rby %>% filter(year == YRS[y]) %>% pull(f))
+  prev_advice <-
+    res[[y]] %>% 
+    filter(Component == "final_advice") %>% 
+    pull(value)
+}
+names(res) <- YRS
+advice.rfb <- 
+  bind_rows(res, .id = "year") %>% 
+  mutate(year = as.integer(year))
+advice.all <- 
+  bind_rows(advice.all,
+            advice.rfb %>% 
+              filter(Component == "final_advice") %>% 
+              select(year, advice = value) %>% 
+              mutate(base = "rfb"))
+advice.all %>% 
+  ggplot(aes(year, advice, colour = base)) +
+  theme_bw(base_size = 13) +
+  geom_point() +
+  geom_line() +
+  scale_colour_brewer(palette = "Set1") +
+  labs(x = NULL, y = "[kt]",
+       title = "Catch and advice") +
+  expand_limits(y = 0)
+```
+
+
+```{r SOMESTUFF}
+# a little helper function
+lh <- function(x) {
+  indexA <- (x + lag(x, 1)) / 2
+  indexB <- (lag(x, 2) + lag(x, 3) + lag(x, 4)) / 3
+  ratio <- indexA / indexB
+  return(ratio)
+}
+d <- 
+  rby %>% 
+  mutate(ratio = lh(index)) %>% 
+  select(year, index, ratio)
+p1 <- 
+  d %>% 
+  gather(var, val, -year) %>% 
+  filter(var == "ratio") %>% 
+  ggplot(aes(year, val)) +
+  theme_bw(base_size = 13) +
+  annotate("rect", xmin = -Inf, xmax = Inf,
+           ymin = 0.70, ymax = 1.2, 
+           fill = "red", alpha = 0.3) + 
+  geom_point() +
+  geom_line() +
+  facet_grid(var ~ ., scales = "free_y") +
+  labs(x = NULL, y = NULL)
+p2 <- 
+  d %>% 
+  gather(var, val, -year) %>% 
+  filter(var == "index") %>% 
+  ggplot(aes(year, val)) +
+  theme_bw(base_size = 13) +
+  annotate("rect", ymin = -Inf, ymax = Inf,
+           xmin = 1991.5, xmax = 1994.5, 
+           fill = "red", alpha = 0.3) + 
+  annotate("rect", ymin = -Inf, ymax = Inf,
+           xmin = 1999.5, xmax = 2001.5, 
+           fill = "red", alpha = 0.3) + 
+  geom_point() +
+  geom_line() +
+  facet_grid(var ~ ., scales = "free_y") +
+  labs(x = NULL, y = NULL) +
+  geom_hline(yintercept = Itrigger)
+library(patchwork)
+p1 + p2 + plot_layout(ncol = 1)
+rby %>% 
+  filter(year == 2020)
+Itrigger
+
+rby %>% 
+  mutate(q = log(index/bio)) %>% 
+  pull(q) %>% 
+  mean(na.rm = TRUE) %>% 
+  exp()
+rby %>% 
+  ggplot(aes(index, bio)) +
+  geom_point() + 
+  geom_smooth() +
+  expand_limits(x = 0, y = 0)
+rby %>% 
+  select(year, index, bio) %>% 
+  gather(var, val, -year) %>% 
+  group_by(var) %>% 
+  mutate(val = val / mean(val, na.rm = TRUE)) %>% 
+  ggplot(aes(year, val, colour = var)) +
+  geom_line()
+```
+
+```{r}
+advice.rfb %>% 
+  mutate(value = round(value, 3)) %>% 
+  spread(Component, value) %>% 
+  mutate(rfb = round(ratio * length_ratio * biomass_safeguard, 3),
+         rfbm = round(rfb * multiplier, 3)) %>% 
+  select(year, previous_advice, 
+         m = multiplier, 
+         A = IndexA, 
+         B = IndexB, 
+         r = ratio,
+         f = length_ratio,
+         b = biomass_safeguard,
+         rfb,
+         rfbm,
+         initial_advice, 
+         stability = stability_clause_applied, 
+         final_advice, 
+         change = advice_change,
+         everything()) %>% 
+  knitr::kable()
+```
