@@ -46,7 +46,7 @@ two_over_three <- function(data,
                                     tac,
                                     round((tac-prev_tac)/prev_tac*100, 0))))
 
-  return(as_tibble(out))
+  return(tibble::as_tibble(out))
 }
 
 
@@ -117,7 +117,7 @@ rfb_rule <- function(data,
                                     tac,
                                     round((tac-prev_tac)/prev_tac*100, 0))))
 
-  return(as_tibble(out))
+  return(tibble::as_tibble(out))
 }
 
 #' @title F-proxy rule for category 3 stocks
@@ -185,14 +185,14 @@ fproxy_rule <- function(data,
                                     tac,
                                     round((tac-prev_tac)/prev_tac*100, 0))))
 
-  return(as_tibble(out))
+  return(tibble::as_tibble(out))
 }
 
 #' @title RB rule for category 3 stocks
 #' @description Calculates the advised catch based on the category 3 RB rule. This rule is run as a last resort if length data is not available and the stock is not short-lived.
 #'
 #' @param data A data-frame containing the columns 'year' and 'index'
-#' @param tac The catch advice for the previous advisory year
+#' @param prev_tac The catch advice for the previous advisory year
 #' @param Itrigger Itrigger which is defined as 1.4*Iloss. Generally, Iloss is defined as the lowest observed index value (this is assumed if Itrigger is NULL)
 #'
 #' @return A dataframe with the advice for the current year and information used to reach this value. 'final_advice' is the advice after the biomass safeguard is considered, the 'initial_advice' is the value prior to this step.
@@ -249,7 +249,7 @@ base_rule <- function(data,
                                     tac,
                                     round((tac-prev_tac)/prev_tac*100, 0))))
 
-  return(as_tibble(out))
+  return(tibble::as_tibble(out))
 }
 
 
