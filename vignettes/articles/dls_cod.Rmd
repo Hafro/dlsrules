@@ -37,43 +37,7 @@ con <- connect_mar()
 ```
 
 ```{r}
-#' Get the x value that correponds to the y-mode
-#'
-#' @param l A numerical vector, normally length
-#' @param n A numerical vector, normally count
-#'
-#' @return A vector containing normally the length that corresponds to the mode
-#' @export
-#'
-dl_mode <- function(l, n) {
-  i <- n == max(n)
-  mean(l[i])
-}
-#' The length of first capture
-#'
-#' @param l length
-#' @param n count
-#'
-#' @return A vector of lengths of first captures
-#' @export
-#'
-dl_lc <- function(l, n) {
-  i <- n > 0.5 * max(n)
-  min(l[i])
-}
-#' Mean length above length of first capture
-#'
-#' @param l length
-#' @param n count
-#' @param lc length of first capture
-#'
-#' @return A vector
-#' @export
-#'
-dl_mean <- function(l, n, lc) {
-  sum(l[l > lc] * n[l > lc]) / sum(n[l > lc])
-}
-dl_ltarget <- dlsrules::target_reference_length
+dl_target <- dlsrules::target_reference_length
 ```
 
 ## Preamble
