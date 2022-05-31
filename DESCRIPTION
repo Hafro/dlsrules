@@ -1,9 +1,11 @@
 Package: dlsrules
 Title: Data-limited stock empirical rules
-Version: 0.0.0.9000
-Authors@R: 
-    person("William", "Butler", , "will.butler@hafogvatn.is", role = c("aut", "cre"))
-Description: Set of functions to help run empirical rules for category 3 stocks
+Version: 2022-05-31
+Authors@R:
+  c(person("William", "Butler", , "will.butler@hafogvatn.is", role = c("aut", "cre")),
+    person("Einar", "Hjorleifsson", email = "einarhjorleifsson@gmail.com",role = c("aut")))
+Maintainer: William Butler <will.butler@hafogvatn.is>    
+Description: Set of convenient functions to help users establish empirical advisory rules for ICES category 3 stocks. Sentence number two, just to pass check.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

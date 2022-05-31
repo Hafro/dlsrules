@@ -6,10 +6,15 @@
 \alias{dlsrules-package}
 \title{dlsrules: Data-limited stock empirical rules}
 \description{
-Set of functions to help run empirical rules for category 3 stocks
+Set of convenient functions to help users establish empirical advisory rules for ICES category 3 stocks. Sentence number two, just to pass check.
 }
 \author{
 \strong{Maintainer}: William Butler \email{will.butler@hafogvatn.is}
+
+Authors:
+\itemize{
+  \item Einar Hjorleifsson \email{einarhjorleifsson@gmail.com}
+}
 
 }
 \keyword{internal}
