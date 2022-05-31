@@ -20,13 +20,13 @@ knitr::opts_chunk$set(
 ```
 
 ```{r LIBRARIES}
-# devtools::install_git(url="https://gitlab.hafogvatn.is/demersal-division/dlsrules.git")
+# remotes::install_git(url="https://gitlab.hafogvatn.is/demersal-division/dlsrules.git")
+# remotes::install_github("einarhjorleifsson/fishvice", dependencies = FALSE)
 library(FLCore)
 library(FLXSA)
 library(FLasher)
 library(ggplotFL)
 library(patchwork)
-# remotes::install_github("einarhjorleifsson/fishvice", dependencies = FALSE)
 library(fishvice)
 library(tidyverse)
 library(dlsrules)
@@ -134,9 +134,9 @@ if(calc_linf) linf <- max(ldist.year$length) # not really
 lref.year <- 
   ldist.year %>%
   group_by(year) %>% 
-  summarise(lc = dl_lc(length, n),
-            lt = dl_ltarget(lc, linf),
-            lm = dl_mean(length, n, lc),
+  summarise(lc = dlsrules:::dl_1st_capture(length, n),
+            lt = dl_target(lc, linf),
+            lm = dlsrules:::dl_mean(length, n, lc),
             .groups = "drop")
 ```
 
@@ -254,9 +254,9 @@ ainf <- 16
 aref.year <- 
   rbya %>%
   group_by(year) %>% 
-  summarise(ac = dl_lc(age, oC),
-            at = dl_ltarget(ac, ainf),
-            am = dl_mean(age, oC, ac),
+  summarise(ac = dlsrules:::dl_1st_capture(age, oC),
+            at = dl_target(ac, ainf),
+            am = dlsrules:::dl_mean(age, oC, ac),
             .groups = "drop")
 aref.year %>% 
   gather(var, val, -year) %>% 

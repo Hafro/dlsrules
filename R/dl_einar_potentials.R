@@ -16,9 +16,11 @@
 #' @return A vector of lengths or age of first captures
 #'
 dl_1st_capture <- function(x, y, p = 0.5) {
-  i <- x >= p * max(y)
+  i <- y >= p * max(y)
   return(min(x[i]))
 }
+
+
 #' Mean length or age in the catch above length or age of first capture
 #'
 #' @param x length or age
