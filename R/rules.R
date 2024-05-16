@@ -57,7 +57,9 @@ two_over_three <- function(data,
 #' @param prev_tac The catch advice for the previous advisory year
 #' @param Itrigger Itrigger which is defined as 1.4*Iloss. Generally, Iloss is defined as the lowest observed index value (this is assumed if Itrigger is NULL)
 #' @param stock_k The growth parameter 'K'
-#' @param len_ratio Component 'f' of the rfb rule
+#' @param len_data A data frame containing length frequencies. Requires the columns "year", "length", and "n"
+#' @param Linf L-infinity from the Von Bertalanffy equation
+#' @param assessment_year The current assessment year
 #'
 #' @return A dataframe with the advice for the current year and information used to reach this value. 'final_advice' is the advice after the biomass safeguard is considered, the 'initial_advice' is the value prior to this step.
 #' @export
@@ -65,7 +67,9 @@ rfb_rule <- function(data,
                      prev_tac,
                      Itrigger = NULL,
                      stock_k,
-                     len_ratio){
+                     len_data,
+                     Linf,
+                     assessment_year){
 
   if (!all(c('year', 'index') %in% names(data))){
     stop("The input dataframe must have the columns 'year' and 'index'")
@@ -84,6 +88,9 @@ rfb_rule <- function(data,
   ## Two over three
   ratio <- calc_ratio(data, num = 2, den = 3)
 
+  ## Fishing pressure proxy
+  fpp <- fishing_pressure_proxy(len_data, Linf, assessment_year)
+
   ## Biomass safeguard
   bsg <- biomass_safeguard(Inow = Inow, Itrigger = Itrigger)
 
@@ -91,7 +98,7 @@ rfb_rule <- function(data,
   imult <- multiplier_lookup(stock_k)
 
   ## Calculate prelininary advice
-  initial_tac <- prev_tac * ratio['ratio', 'value'] * len_ratio * bsg * imult
+  initial_tac <- prev_tac * ratio['ratio', 'value'] * fpp$fpp * bsg * imult
 
   ## Apply stability clause for final tac
   tac <- stability_clause(tac = initial_tac,
@@ -99,23 +106,34 @@ rfb_rule <- function(data,
                           bsg = bsg)
 
   ## Gather output
-  out <- rbind(data.frame(Component = 'previous_advice',
-                          value = prev_tac),
-               ratio,
-               data.frame(Component = c('length_ratio',
-                                        'biomass_safeguard',
-                                        'multiplier',
-                                        'initial_advice',
-                                        'stability_clause_applied',
-                                        'final_advice',
-                                        'advice_change'),
-                          value = c(len_ratio,
-                                    bsg,
-                                    imult,
-                                    initial_tac,
-                                    ifelse(tac == initial_tac, 0, 1),
-                                    tac,
-                                    round((tac-prev_tac)/prev_tac*100, 0))))
+  out <-
+    data.frame(Component =
+                 c('previous_catch_advice',
+                   'index_A', 'index_B', 'index_ratio',                         ## Stock biomass trend
+                   'mean_catch_length', 'msy_proxy_length', 'fpp_ratio',        ## Fishing pressure proxy
+                   'last_index_value', 'Itrigger', 'biomass_safeguard',         ## Biomass safeguard
+                   'multiplier',                                                ## Precautionary multiplier
+                   'initial_advice',
+                   'stability_clause_applied',
+                   'catch_advice',
+                   'advice_change'),
+               value =
+                 c(prev_tac,
+                   round(ratio[ratio$Component %in% c('IndexA', 'IndexB'), 'value'],0),
+                   ratio[ratio$Component == 'ratio', 'value'],
+                   fpp$meanL, fpp$trl, fpp$fpp,
+                   round(c(Inow, Itrigger), 0), bsg,
+                   imult,
+                   initial_tac, ifelse(tac == initial_tac, 0, 1),
+                   tac,
+                   round((tac-prev_tac)/prev_tac*100, 0)),
+               type =
+                 c('advice',
+                   rep('stock_biomass_trend', 3),
+                   rep('fishing_pressure_proxy', 3),
+                   rep('biomass_safeguard', 3),
+                   'precautionary_multiplier',
+                   rep('advice', 4)))
 
   return(tibble::as_tibble(out))
 }
@@ -165,25 +183,33 @@ fproxy_rule <- function(data,
                           prev_tac = prev_tac,
                           bsg = bsg)
 
-  ## Gather output
-  out <- rbind(data.frame(Component = 'previous_advice',
-                          value = prev_tac),
-               data.frame(Component = c('Index',
-                                        'fproxy',
-                                        'biomass_safeguard',
-                                        'multiplier',
-                                        'initial_advice',
-                                        'stability_clause_applied',
-                                        'final_advice',
-                                        'advice_change'),
-                          value = c(Inow,
-                                    fproxy,
-                                    bsg,
-                                    imult,
-                                    initial_tac,
-                                    ifelse(tac == initial_tac, 0, 1),
-                                    tac,
-                                    round((tac-prev_tac)/prev_tac*100, 0))))
+  out <-
+    data.frame(Component =
+                 c('previous_catch_advice',
+                   'biomass_index',                                             ## Last years index
+                   'Fmsy_proxy',                                                ## Fishing pressure proxy
+                   'last_index_value', 'Itrigger', 'biomass_safeguard',         ## Biomass safeguard
+                   'multiplier',                                                ## Precautionary multiplier
+                   'initial_advice',
+                   'stability_clause_applied',
+                   'catch_advice',
+                   'advice_change'),
+               value =
+                 c(prev_tac,
+                   Inow,
+                   fproxy,
+                   round(c(Inow, Itrigger), 0), bsg,
+                   imult,
+                   initial_tac, ifelse(tac == initial_tac, 0, 1),
+                   tac,
+                   round((tac-prev_tac)/prev_tac*100, 0)),
+               type =
+                 c('advice',
+                   'biomass_index',
+                   rep('fishing_pressure_proxy', 1),
+                   rep('biomass_safeguard', 3),
+                   'precautionary_multiplier',
+                   rep('advice', 4)))
 
   return(tibble::as_tibble(out))
 }
@@ -197,6 +223,8 @@ fproxy_rule <- function(data,
 #'
 #' @return A dataframe with the advice for the current year and information used to reach this value. 'final_advice' is the advice after the biomass safeguard is considered, the 'initial_advice' is the value prior to this step.
 #' @export
+#'
+#'
 base_rule <- function(data,
                       prev_tac,
                       Itrigger = NULL){
@@ -233,21 +261,31 @@ base_rule <- function(data,
                           bsg = bsg)
 
   ## Gather output
-  out <- rbind(data.frame(Component = 'previous_advice',
-                          value = prev_tac),
-               ratio,
-               data.frame(Component = c('biomass_safeguard',
-                                        'multiplier',
-                                        'initial_advice',
-                                        'stability_clause_applied',
-                                        'final_advice',
-                                        'advice_change'),
-                          value = c(bsg,
-                                    imult,
-                                    initial_tac,
-                                    ifelse(tac == initial_tac, 0, 1),
-                                    tac,
-                                    round((tac-prev_tac)/prev_tac*100, 0))))
+  out <-
+    data.frame(Component =
+                 c('previous_catch_advice',
+                   'index_A', 'index_B', 'index_ratio',                         ## Stock biomass trend
+                   'last_index_value', 'Itrigger', 'biomass_safeguard',         ## Biomass safeguard
+                   'multiplier',                                                ## Precautionary multiplier
+                   'initial_advice',
+                   'stability_clause_applied',
+                   'catch_advice',
+                   'advice_change'),
+               value =
+                 c(prev_tac,
+                   round(ratio[ratio$Component %in% c('IndexA', 'IndexB'), 'value'],0),
+                   ratio[ratio$Component == 'ratio', 'value'],
+                   round(c(Inow, Itrigger), 0), bsg,
+                   imult,
+                   initial_tac, ifelse(tac == initial_tac, 0, 1),
+                   tac,
+                   round((tac-prev_tac)/prev_tac*100, 0)),
+               type =
+                 c('advice',
+                   rep('stock_biomass_trend', 3),
+                   rep('biomass_safeguard', 3),
+                   'precautionary_multiplier',
+                   rep('advice', 4)))
 
   return(tibble::as_tibble(out))
 }

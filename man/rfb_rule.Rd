@@ -4,7 +4,15 @@
 \alias{rfb_rule}
 \title{RFB rule for category 3 stocks}
 \usage{
-rfb_rule(data, prev_tac, Itrigger = NULL, stock_k, len_ratio)
+rfb_rule(
+  data,
+  prev_tac,
+  Itrigger = NULL,
+  stock_k,
+  len_data,
+  Linf,
+  assessment_year
+)
 }
 \arguments{
 \item{data}{A data-frame containing the columns 'year' and 'index'}
@@ -15,7 +23,11 @@ rfb_rule(data, prev_tac, Itrigger = NULL, stock_k, len_ratio)
 
 \item{stock_k}{The growth parameter 'K'}
 
-\item{len_ratio}{Component 'f' of the rfb rule}
+\item{len_data}{A data frame containing length frequencies. Requires the columns "year", "length", and "n"}
+
+\item{Linf}{L-infinity from the Von Bertalanffy equation}
+
+\item{assessment_year}{The current assessment year}
 }
 \value{
 A dataframe with the advice for the current year and information used to reach this value. 'final_advice' is the advice after the biomass safeguard is considered, the 'initial_advice' is the value prior to this step.

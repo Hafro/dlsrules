@@ -7,10 +7,12 @@
 ## Libraries
 library(tidyverse)
 library(mar)
-library(dlsrules)
+#library(dlsrules)
 library(tidypax)
 library(mfdb)
 # library(fitdistrplus)
+
+for (i in dir('R')) source(file.path('R', i))
 
 ## Open mar connection
 mar <- connect_mar()
@@ -24,8 +26,8 @@ lastyear <- tyr - 1
 tegund_nr <- 7
 
 ## tac
-tac <- 334
-tac_lastyear <- 406
+tac <- 259
+tac_lastyear <- 334
 
 # vonb K taken from Muggur's presentation (2021/07 WKILIFE Subgroup)
 tegund_k <- 0.1
@@ -86,40 +88,6 @@ ldist.all <-
   group_by(length) %>%
   summarise(n = sum(n))
 
-## Calculations based on raw data (ie no model)
-## 1. modal abundance
-## 2. length of modal abundance
-## 3. 50% modal abundance
-
-ma_ind <- which.max(ldist.all$n)
-modal_abun <- ldist.all$n[ma_ind]
-modal_abun_len <- ldist.all$length[ma_ind] ## Same as calcmode
-modal_abun50 <- modal_abun*0.5
-
-## Length at first capture equals the length at 50% modal abun
-## Find first length class where n > modal_abun50
-Lc <- min(ldist.all$length[ldist.all$n > modal_abun50])
-
-## OR:
-## Find first length class where the difference between n and modal_abun50 is minimised
-#Lc_ind <- which.min(abs(ldist.all$n[ldist.all$length < modal_abun_len] - modal_abun50))
-#Lc <- ldist.all$length[Lc_ind]
-
-## Method 2: following Elvar, fit a normal dist
-# ldist_norm <- fitdist(rep(ldist.all$length, ldist.all$n), 'norm')
-# ldist_mean <- ldist_norm$estimate['mean']
-# ldist_sd <- ldist_norm$estimate['sd']
-
-## Mean length above Lc per year
-meanL.year <-
-  ldist.year %>%
-  filter(length > Lc) %>%
-  group_by(year) %>%
-  summarise(L = sum(length*n)/sum(n))
-
-## Mean length of last year (2021)
-meanL <- meanL.year[meanL.year$year == lastyear, 'L']$L
-
 ## -----------------------------------------------------------------------------
 ## L-Infinity
 # Use max length to start
@@ -155,7 +123,7 @@ lines(seq(0,20,by = 0.1), preds, col = "red")
 # linf <- max(ldist.all$length) / 0.95
 
 ## Calculate ratio of mean length above Lc in past year to target reference length
-len_ratio <- calc_f(meanL = meanL, Lc = Lc, Linf = linf)
+len_ratio <- fishing_pressure_proxy(ldist.year, Linf = linf, assessment_year = tyr)
 
 ## -----------------------------------------------------------------------------
 
@@ -166,7 +134,9 @@ rfb_rule(data = idata,
          prev_tac = tac,
          Itrigger = Itrigger,
          stock_k = tegund_k,
-         len_ratio = len_ratio)
+         len_data = ldist.year,
+         Linf = linf,
+         assessment_year = tyr)
 
 ## Advice for current assessment based on old rule
 two_over_three(data = idata,
@@ -195,7 +165,9 @@ res <- lapply(test_linf, function(x){
                   prev_tac = tac,
                   Itrigger = Itrigger,
                   stock_k = tegund_k,
-                  len_ratio = calc_f(meanL = meanL, Lc = Lc, Linf = x))
+                  len_data = ldist.year,
+                  Linf = x,
+                  assessment_year = tyr)
   tmp$lf <- x
   return(tmp)
 })

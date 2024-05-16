@@ -28,6 +28,6 @@ length (mean length/target reference length). The target reference length is ğ
 }
 \section{Functions}{
 \itemize{
-\item \code{target_reference_length}: 
-}}
+\item \code{target_reference_length()}: 
 
+}}

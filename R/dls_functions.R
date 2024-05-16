@@ -3,6 +3,39 @@
 #' This is the ratio of the mean length (𝐿y−1 ) in the observed catch that is above the length of first capture relative to the target reference
 #' length (mean length/target reference length). The target reference length is 𝐿fm = 0.75 Lc + 0.25 Linf, where Lc is defined as length at 50% of modal abundance
 #'
+#' @param len_data A data frame containing length frequencies. Requires the columns "year", "length", and "n"
+#' @param Linf L-infinity from the Von Bertalanffy equation
+#' @param assessment_year The current assessment year
+#'
+#' @return A list containing the length at first capture, Linf, mean length above Lc in previous year, target reference length, and the fishing pressure proxy
+#' @export
+fishing_pressure_proxy <- function(len_data, Linf, assessment_year){
+
+  ## Aggregate over years
+  Ldist <- aggregate(list(n = len_data$n), by = list(length = len_data$length), FUN = sum)
+
+  ## Find the modal abundance and subsequently the length at first capture
+  modal_abun <- Ldist$n[which.max(Ldist$n)]
+  Lc <- min(Ldist$length[Ldist$n > modal_abun*0.5])
+
+  ## Mean length above Lc in previous year
+  meanL <- len_data[len_data$year == (assessment_year - 1) & len_data$length > Lc,]
+  meanL <- sum(meanL$length*meanL$n)/sum(meanL$n)
+
+  ## Target reference length
+  trl <- target_reference_length(Lc, Linf)
+
+  ## Fishing pessure proxy
+  fpp <- meanL / trl
+
+  return(list(Linf = Linf, Lc = Lc, meanL = meanL, trl = trl, fpp = fpp))
+}
+
+#' @title Calculate 'f' component
+#' @description Calculates component 'f' for the rfb equation for category 3 stocks.
+#' This is the ratio of the mean length (𝐿y−1 ) in the observed catch that is above the length of first capture relative to the target reference
+#' length (mean length/target reference length). The target reference length is 𝐿fm = 0.75 Lc + 0.25 Linf, where Lc is defined as length at 50% of modal abundance
+#'
 #' @param meanL The mean length in the observed catch that is above the length of first capture
 #' @param Lc The length at first capture (defined as the length at 50% of modal abundance)
 #' @param Linf L-infinity from the Von Bertalanffy equation
