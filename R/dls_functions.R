@@ -16,7 +16,7 @@ fishing_pressure_proxy <- function(len_data, Linf, assessment_year){
 
   ## Find the modal abundance and subsequently the length at first capture
   modal_abun <- Ldist$n[which.max(Ldist$n)]
-  Lc <- min(Ldist$length[Ldist$n > modal_abun*0.5])
+  Lc <- min(Ldist$length[Ldist$n > modal_abun*0.5]) - 1
 
   ## Mean length above Lc in previous year
   meanL <- len_data[len_data$year == (assessment_year - 1) & len_data$length > Lc,]
@@ -44,6 +44,17 @@ fishing_pressure_proxy <- function(len_data, Linf, assessment_year){
 #' @export
 calc_f <- function(meanL, Lc, Linf){
   return(meanL / target_reference_length(Lc, Linf))
+}
+
+#' @title Calculate I_trigger
+#' @description Calculates I_trigger from I_loss (i.e. I_trigger = I_loss*1.4)
+#'
+#' @param Iloss Iloss
+#'
+#' @return I_trigger
+#' @export
+calc_Itrigger <- function(Iloss){
+  return(1.4*Iloss)
 }
 
 #' @describeIn calc_f

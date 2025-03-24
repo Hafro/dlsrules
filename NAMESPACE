@@ -2,6 +2,7 @@
 
 export(base_rule)
 export(biomass_safeguard)
+export(calc_Itrigger)
 export(calc_f)
 export(calc_mode)
 export(calc_ratio)
