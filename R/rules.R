@@ -127,7 +127,8 @@ rfb_rule <- function(ref_points,
     data.frame(Component =
                  c('previous_catch_advice',
                    'index_A', 'index_B', 'index_ratio',                          ## Stock biomass trend
-                   'mean_catch_length', 'msy_proxy_length', 'fpp_ratio',         ## Fishing pressure proxy
+                   'mean_catch_length', 'msy_proxy_length',                      ## Fishing pressure proxy
+                   'fpp_ratio', 'fpp_ratio_inv',                                 ## Fishing pressure proxy
                    'last_index_value', 'Itrigger', 'Iloss', 'biomass_safeguard', ## Biomass safeguard
                    'multiplier',                                                 ## Precautionary multiplier
                    'initial_catch_advice',
@@ -138,7 +139,8 @@ rfb_rule <- function(ref_points,
                  c(prev_tac,
                    round(ratio[ratio$Component %in% c('IndexA', 'IndexB'), 'value'],0),
                    ratio[ratio$Component == 'ratio', 'value'],
-                   fpp$meanL, fpp$trl, fpp$fpp,
+                   fpp$meanL, fpp$trl, 
+                   fpp$fpp, fpp$trl/fpp$meanL,
                    round(c(Inow, ref_points$I_trigger, ref_points$I_trigger/1.4), 0), bsg,
                    imult,
                    initial_tac, ifelse(tac == initial_tac, 0, 1),
@@ -147,7 +149,7 @@ rfb_rule <- function(ref_points,
                type =
                  c('advice',
                    rep('stock_biomass_trend', 3),
-                   rep('fishing_pressure_proxy', 3),
+                   rep('fishing_pressure_proxy', 4),
                    rep('biomass_safeguard', 4),
                    'precautionary_multiplier',
                    rep('advice', 4)))
