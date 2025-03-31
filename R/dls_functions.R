@@ -4,30 +4,31 @@
 #' length (mean length/target reference length). The target reference length is 𝐿fm = 0.75 Lc + 0.25 Linf, where Lc is defined as length at 50% of modal abundance
 #'
 #' @param len_data A data frame containing length frequencies. Requires the columns "year", "length", and "n"
+#' @param Lc The length at first capture (defined as the length at 50% of modal abundance)
 #' @param Linf L-infinity from the Von Bertalanffy equation
 #' @param assessment_year The current assessment year
 #'
 #' @return A list containing the length at first capture, Linf, mean length above Lc in previous year, target reference length, and the fishing pressure proxy
 #' @export
-fishing_pressure_proxy <- function(len_data, Linf, assessment_year){
-
+fishing_pressure_proxy <- function(len_data, Linf, Lc, assessment_year){
+  
   ## Aggregate over years
   Ldist <- aggregate(list(n = len_data$n), by = list(length = len_data$length), FUN = sum)
-
+  
   ## Find the modal abundance and subsequently the length at first capture
-  modal_abun <- Ldist$n[which.max(Ldist$n)]
-  Lc <- min(Ldist$length[Ldist$n > modal_abun*0.5]) - 1
-
+  # modal_abun <- Ldist$n[which.max(Ldist$n)]
+  # Lc <- min(Ldist$length[Ldist$n > modal_abun*0.5]) - 1
+  
   ## Mean length above Lc in previous year
   meanL <- len_data[len_data$year == (assessment_year - 1) & len_data$length > Lc,]
   meanL <- sum(meanL$length*meanL$n)/sum(meanL$n)
-
+  
   ## Target reference length
   trl <- target_reference_length(Lc, Linf)
-
+  
   ## Fishing pessure proxy
   fpp <- meanL / trl
-
+  
   return(list(Linf = Linf, Lc = Lc, meanL = meanL, trl = trl, fpp = fpp))
 }
 
@@ -75,21 +76,21 @@ target_reference_length <- function(Lc, Linf){
 #' @return The ratio between indexA and indexB
 #' @export
 calc_ratio <- function(data, num = 2, den = 3){
-
+  
   if (!all(c('year', 'index') %in% names(data))){
     stop("The input dataframe must have the columns 'year' and 'index'")
   }
-
+  
   data <- data[order(data$year, decreasing = TRUE),]
   indexA <- mean(data$index[1:num])
   indexB <- mean(data$index[(num+1):(num+den)])
-
+  
   out <- data.frame(Component = c('IndexA', 'IndexB', 'ratio'),
                     value = c(indexA, indexB, indexA/indexB))
   row.names(out) <- out$Component
-
+  
   return(out)
-
+  
 }
 
 #' @title Stability clause
@@ -102,7 +103,7 @@ calc_ratio <- function(data, num = 2, den = 3){
 #' @return The advised catch after the stability clause has been applied
 #' @export
 stability_clause <- function(tac, prev_tac, bsg){
-
+  
   ## The biomass safeguard does not apply if the biomass safeguard is < 1
   if (bsg < 1){
     return(tac)
@@ -110,7 +111,7 @@ stability_clause <- function(tac, prev_tac, bsg){
   else{
     return(min(max(0.7*prev_tac, tac), 1.2*prev_tac))
   }
-
+  
 }
 
 #' @title Uncertainty cap

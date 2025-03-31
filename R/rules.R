@@ -53,58 +53,75 @@ two_over_three <- function(data,
 #' @title RFB rule for category 3 stocks
 #' @description Calculates the advised catch based on the category 3 RFB rule.
 #'
-#' @param data A data-frame containing the columns 'year' and 'index'
-#' @param prev_tac The catch advice for the previous advisory year
-#' @param Itrigger Itrigger which is defined as 1.4*Iloss. Generally, Iloss is defined as the lowest observed index value (this is assumed if Itrigger is NULL)
-#' @param stock_k The growth parameter 'K'
+#' @param ref_points A list with the following elements: 'K', 'Linf', 'Lc', 'I_lim', 'target_reference_length', 'I_trigger'
+#' @param index_data The survey index, must contain 'year' and 'index' columns
 #' @param len_data A data frame containing length frequencies. Requires the columns "year", "length", and "n"
-#' @param Linf L-infinity from the Von Bertalanffy equation
+#' @param prev_tac The preceding assessment year's tac
 #' @param assessment_year The current assessment year
 #'
 #' @return A dataframe with the advice for the current year and information used to reach this value. 'final_advice' is the advice after the biomass safeguard is considered, the 'initial_advice' is the value prior to this step.
 #' @export
-rfb_rule <- function(data,
-                     prev_tac,
-                     Itrigger = NULL,
-                     stock_k,
+rfb_rule <- function(ref_points,
+                     index_data,
                      len_data,
-                     Linf,
+                     prev_tac,
                      assessment_year){
-
-  if (!all(c('year', 'index') %in% names(data))){
+  
+  if (!('K' %in% names(ref_points))){
+    stop("The ref_points list must contain a 'K' element")
+  }
+  if (!('target_reference_length' %in% names(ref_points))){
+    if (all(c('Linf', 'Lc') %in% names(ref_points))){
+      ref_points$target_reference_length <-
+        target_reference_length(Lc = ref_points$Lc, Linf = ref_points$Linf)
+    }else{
+      stop("The ref_points list must contain either a 'target_reference_length' element or both 'Linf' and 'Lc' elements")
+    }
+  }
+  if (!('I_trigger' %in% names(ref_points))){
+    if ('I_lim' %in% names(ref_points)){
+      ref_points$I_trigger <- calc_Itrigger(ref_points$I_lim)
+    }else{
+      ## If Itrigger not specified, assume is lowest value
+      Itrigger <- 1.4*min(data$index, na.rm = TRUE)
+      cat('Assuming Iloss is equal to the lowest observed index value of ', Itrigger/1.4)
+    }
+  }
+  
+  if (!all(c('year', 'index') %in% names(index_data))){
     stop("The input dataframe must have the columns 'year' and 'index'")
   }
-
-  ## Get current indice
-  data <- data[order(data$year, decreasing = TRUE),]
-  Inow <- data$index[1]
-
-  ## If Itrigger not specified, assume is lowest value
-  if (is.null(Itrigger)){
-    Itrigger <- 1.4*min(data$index, na.rm = TRUE)
-    cat('Assuming Iloss is equal to the lowest observed index value of ', Itrigger/1.4)
+  if (!all(c('year', 'length', 'n') %in% names(len_data))){
+    stop("The length frequency dataframe must have the columns 'year', 'length', and 'n'")
   }
-
+  
+  ## Get current indice
+  index_data <- index_data[order(index_data$year, decreasing = TRUE),]
+  Inow <- index_data$index[1]
+  
   ## Two over three
-  ratio <- calc_ratio(data, num = 2, den = 3)
-
+  ratio <- calc_ratio(index_data, num = 2, den = 3)
+  
   ## Fishing pressure proxy
-  fpp <- fishing_pressure_proxy(len_data, Linf, assessment_year)
-
+  fpp <- fishing_pressure_proxy(len_data,
+                                Linf = ref_points$Linf,
+                                Lc = ref_points$Lc,
+                                assessment_year)
+  
   ## Biomass safeguard
-  bsg <- biomass_safeguard(Inow = Inow, Itrigger = Itrigger)
-
+  bsg <- biomass_safeguard(Inow = Inow, Itrigger = ref_points$I_trigger)
+  
   ## Multiplier based on stock growth
-  imult <- multiplier_lookup(stock_k)
-
+  imult <- multiplier_lookup(ref_points$K)
+  
   ## Calculate prelininary advice
   initial_tac <- prev_tac * ratio['ratio', 'value'] * fpp$fpp * bsg * imult
-
+  
   ## Apply stability clause for final tac
   tac <- stability_clause(tac = initial_tac,
                           prev_tac = prev_tac,
                           bsg = bsg)
-
+  
   ## Gather output
   out <-
     data.frame(Component =
@@ -122,7 +139,7 @@ rfb_rule <- function(data,
                    round(ratio[ratio$Component %in% c('IndexA', 'IndexB'), 'value'],0),
                    ratio[ratio$Component == 'ratio', 'value'],
                    fpp$meanL, fpp$trl, fpp$fpp,
-                   round(c(Inow, Itrigger, Itrigger/1.4), 0), bsg,
+                   round(c(Inow, ref_points$I_trigger, ref_points$I_trigger/1.4), 0), bsg,
                    imult,
                    initial_tac, ifelse(tac == initial_tac, 0, 1),
                    tac,
@@ -134,7 +151,7 @@ rfb_rule <- function(data,
                    rep('biomass_safeguard', 4),
                    'precautionary_multiplier',
                    rep('advice', 4)))
-
+  
   return(tibble::as_tibble(out))
 }
 
