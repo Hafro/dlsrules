@@ -7,10 +7,11 @@
 #' @param Lc The length at first capture (defined as the length at 50% of modal abundance)
 #' @param Linf L-infinity from the Von Bertalanffy equation
 #' @param assessment_year The current assessment year
+#' @param lag Number of years from the assessment year for the length distributions. Normally equal to 1, so that measurements are taken from the most recent complete year. If survey data is used, the most recent survey may have occurred in the assessment year, therefore lag should equal 0.
 #'
 #' @return A list containing the length at first capture, Linf, mean length above Lc in previous year, target reference length, and the fishing pressure proxy
 #' @export
-fishing_pressure_proxy <- function(len_data, Linf, Lc, assessment_year){
+fishing_pressure_proxy <- function(len_data, Linf, Lc, assessment_year, lag = 1){
   
   ## Aggregate over years
   Ldist <- aggregate(list(n = len_data$n), by = list(length = len_data$length), FUN = sum)
@@ -20,7 +21,7 @@ fishing_pressure_proxy <- function(len_data, Linf, Lc, assessment_year){
   # Lc <- min(Ldist$length[Ldist$n > modal_abun*0.5]) - 1
   
   ## Mean length above Lc in previous year
-  meanL <- len_data[len_data$year == (assessment_year - 1) & len_data$length > Lc,]
+  meanL <- len_data[len_data$year == (assessment_year - lag) & len_data$length > Lc,]
   meanL <- sum(meanL$length*meanL$n)/sum(meanL$n)
   
   ## Target reference length

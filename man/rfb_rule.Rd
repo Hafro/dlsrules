@@ -4,30 +4,20 @@
 \alias{rfb_rule}
 \title{RFB rule for category 3 stocks}
 \usage{
-rfb_rule(
-  data,
-  prev_tac,
-  Itrigger = NULL,
-  stock_k,
-  len_data,
-  Linf,
-  assessment_year
-)
+rfb_rule(ref_points, index_data, len_data, prev_tac, assessment_year, lag = 1)
 }
 \arguments{
-\item{data}{A data-frame containing the columns 'year' and 'index'}
+\item{ref_points}{A list with the following elements: 'K', 'Linf', 'Lc', 'I_lim', 'target_reference_length', 'I_trigger'}
 
-\item{prev_tac}{The catch advice for the previous advisory year}
-
-\item{Itrigger}{Itrigger which is defined as 1.4*Iloss. Generally, Iloss is defined as the lowest observed index value (this is assumed if Itrigger is NULL)}
-
-\item{stock_k}{The growth parameter 'K'}
+\item{index_data}{The survey index, must contain 'year' and 'index' columns}
 
 \item{len_data}{A data frame containing length frequencies. Requires the columns "year", "length", and "n"}
 
-\item{Linf}{L-infinity from the Von Bertalanffy equation}
+\item{prev_tac}{The preceding assessment year's tac}
 
 \item{assessment_year}{The current assessment year}
+
+\item{lag}{Number of years from the assessment year for the length distributions. Normally equal to 1, so that measurements are taken from the most recent complete year. If survey data is used, the most recent survey may have occurred in the assessment year, therefore lag should equal 0.}
 }
 \value{
 A dataframe with the advice for the current year and information used to reach this value. 'final_advice' is the advice after the biomass safeguard is considered, the 'initial_advice' is the value prior to this step.

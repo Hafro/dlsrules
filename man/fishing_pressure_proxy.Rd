@@ -4,14 +4,18 @@
 \alias{fishing_pressure_proxy}
 \title{Calculate 'f' component}
 \usage{
-fishing_pressure_proxy(len_data, Linf, assessment_year)
+fishing_pressure_proxy(len_data, Linf, Lc, assessment_year, lag = 1)
 }
 \arguments{
 \item{len_data}{A data frame containing length frequencies. Requires the columns "year", "length", and "n"}
 
 \item{Linf}{L-infinity from the Von Bertalanffy equation}
 
+\item{Lc}{The length at first capture (defined as the length at 50\% of modal abundance)}
+
 \item{assessment_year}{The current assessment year}
+
+\item{lag}{Number of years from the assessment year for the length distributions. Normally equal to 1, so that measurements are taken from the most recent complete year. If survey data is used, the most recent survey may have occurred in the assessment year, therefore lag should equal 0.}
 }
 \value{
 A list containing the length at first capture, Linf, mean length above Lc in previous year, target reference length, and the fishing pressure proxy
