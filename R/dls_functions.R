@@ -83,6 +83,11 @@ calc_ratio <- function(data, num = 2, den = 3){
   }
   
   data <- data[order(data$year, decreasing = TRUE),]
+  
+  if (nrow(data) < 5){
+    stop("The rfb and rb rules require a minimum of five years of index data")
+  }
+  
   indexA <- mean(data$index[1:num])
   indexB <- mean(data$index[(num+1):(num+den)])
   

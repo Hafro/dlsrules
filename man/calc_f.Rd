@@ -2,12 +2,9 @@
 % Please edit documentation in R/dls_functions.R
 \name{calc_f}
 \alias{calc_f}
-\alias{target_reference_length}
 \title{Calculate 'f' component}
 \usage{
 calc_f(meanL, Lc, Linf)
-
-target_reference_length(Lc, Linf)
 }
 \arguments{
 \item{meanL}{The mean length in the observed catch that is above the length of first capture}
@@ -18,16 +15,9 @@ target_reference_length(Lc, Linf)
 }
 \value{
 The ratio between meanL and the target reference length
-
-Target reference length
 }
 \description{
 Calculates component 'f' for the rfb equation for category 3 stocks.
 This is the ratio of the mean length (𝐿y−1 ) in the observed catch that is above the length of first capture relative to the target reference
 length (mean length/target reference length). The target reference length is 𝐿fm = 0.75 Lc + 0.25 Linf, where Lc is defined as length at 50\% of modal abundance
 }
-\section{Functions}{
-\itemize{
-\item \code{target_reference_length()}: 
-
-}}

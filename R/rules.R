@@ -53,7 +53,7 @@ two_over_three <- function(data,
 #' @title RFB rule for category 3 stocks
 #' @description Calculates the advised catch based on the category 3 RFB rule.
 #'
-#' @param ref_points A list with the following elements: 'K', 'Linf', 'Lc', 'I_lim', 'target_reference_length', 'I_trigger'
+#' @param ref_points A list with the following elements: 'K', 'Linf', 'Lc', 'I_lim', 'I_trigger'
 #' @param index_data The survey index, must contain 'year' and 'index' columns
 #' @param len_data A data frame containing length frequencies. Requires the columns "year", "length", and "n"
 #' @param prev_tac The preceding assessment year's tac
@@ -72,21 +72,19 @@ rfb_rule <- function(ref_points,
   if (!('K' %in% names(ref_points))){
     stop("The ref_points list must contain a 'K' element")
   }
-  if (!('target_reference_length' %in% names(ref_points))){
-    if (all(c('Linf', 'Lc') %in% names(ref_points))){
-      ref_points$target_reference_length <-
-        target_reference_length(Lc = ref_points$Lc, Linf = ref_points$Linf)
-    }else{
-      stop("The ref_points list must contain either a 'target_reference_length' element or both 'Linf' and 'Lc' elements")
-    }
+  if (ref_points$K >= 0.32){
+    stop("The rfb rule is not valid when k >= 0.32")
+  }
+  if (!all(c('Linf', 'Lc') %in% names(ref_points))){
+    stop("The ref_points list must contain 'Linf' and 'Lc' elements")
   }
   if (!('I_trigger' %in% names(ref_points))){
     if ('I_lim' %in% names(ref_points)){
       ref_points$I_trigger <- calc_Itrigger(ref_points$I_lim)
     }else{
       ## If Itrigger not specified, assume is lowest value
-      Itrigger <- 1.4*min(data$index, na.rm = TRUE)
-      cat('Assuming Iloss is equal to the lowest observed index value of ', Itrigger/1.4)
+      ref_points$I_trigger <- 1.4*min(index_data$index, na.rm = TRUE)
+      cat('Assuming Iloss is equal to the lowest observed index value of ', ref_points$I_trigger/1.4)
     }
   }
   
@@ -180,7 +178,12 @@ fproxy_rule <- function(data,
   if (!all(c('year', 'index') %in% names(data))){
     stop("The input dataframe must have the columns 'year' and 'index'")
   }
-
+  if (stock_k < 0.32){
+    stop("The chr rule is not valid when k < 0.32")
+  }
+  if (stock_k >= 0.45){
+    stop("The chr rule is not valid when k >= 0.45. If an MSE was performed please use the function X.")
+  }
   ## Get current indice
   data <- data[order(data$year, decreasing = TRUE),]
   Inow <- data$index[1]

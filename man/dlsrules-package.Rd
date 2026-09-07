@@ -13,6 +13,7 @@ Set of convenient functions to help users establish empirical advisory rules for
 
 Authors:
 \itemize{
+  \item William Butler \email{will.butler@hafogvatn.is}
   \item Einar Hjorleifsson \email{einarhjorleifsson@gmail.com}
 }
 

@@ -7,7 +7,7 @@
 rfb_rule(ref_points, index_data, len_data, prev_tac, assessment_year, lag = 1)
 }
 \arguments{
-\item{ref_points}{A list with the following elements: 'K', 'Linf', 'Lc', 'I_lim', 'target_reference_length', 'I_trigger'}
+\item{ref_points}{A list with the following elements: 'K', 'Linf', 'Lc', 'I_lim', 'I_trigger'}
 
 \item{index_data}{The survey index, must contain 'year' and 'index' columns}
 

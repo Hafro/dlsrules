@@ -19,7 +19,9 @@ multiplier_lookup <- function(stock_k){
       if (stock_k >= 0.32 && stock_k < 0.45){
         return(0.5)
       }
-      else  print("'K' is greater than 0.45 - ICES recommendation is to use method for short-lived species")
+      else{
+        stop("k >= 0.45: use Method 3 (short-lived species), not the rfb/chr rule.")
+      }  
     }
   }
 }
