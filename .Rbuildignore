@@ -5,3 +5,7 @@ data-raw
 demos
 docs
 ^vignettes/articles$
+^_pkgdown\.yml$
+^pkgdown$
+^\.github$
+^\.git$

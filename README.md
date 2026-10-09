@@ -1,14 +1,26 @@
 # dlsrules
 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/Hafro/dlsrules/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Hafro/dlsrules/actions/workflows/R-CMD-check.yaml)
+[![pkgdown](https://github.com/Hafro/dlsrules/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/Hafro/dlsrules/actions/workflows/pkgdown.yaml)
+<!-- badges: end -->
+
 A set of functions to run the empirical DLS rules for category 3 stocks
+
+Documentation and vignettes: <https://hafro.github.io/dlsrules/> (the rfb
+rule step by step, the chr rule, the history rows, and the stock-specific
+choices and biennial advice).
 
 ## Installation
 
 To install dlsrules run:
 
 ```r
-devtools::install_git(url="https://gitlab.hafogvatn.is/demersal-division/dlsrules.git")
+remotes::install_github("Hafro/dlsrules")
 ```
+
+The package moved from the MFRI GitLab (demersal-division/dlsrules) to
+GitHub in October 2026.
 
 ## Demonstation
 

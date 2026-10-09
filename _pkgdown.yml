@@ -1,0 +1,67 @@
+url: https://hafro.github.io/dlsrules/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+
+reference:
+  - title: Advice
+    desc: The rule wrappers the stock repositories call.
+    contents:
+      - rfb_advice
+      - chr_advice
+  - title: Index and I_loss
+    contents:
+      - index_series
+      - calc_iloss
+      - ref_points_iloss
+      - calc_Itrigger
+  - title: Length data and fishing pressure
+    contents:
+      - catch_ldist
+      - rule_ldist
+      - mean_length_above
+      - fproxy_series
+      - harvest_rate_proxy
+      - linf_from_catch
+      - target_reference_length
+  - title: History and tables
+    contents:
+      - assessment_summary
+      - advice_hist_rows
+      - rfb_ref_points_table
+  - title: Harvest control rules
+    desc: The ICES category 3 rules on plain data frames.
+    contents:
+      - rfb_rule
+      - fproxy_rule
+      - base_rule
+      - two_over_three
+  - title: Rule components
+    contents:
+      - calc_ratio
+      - fishing_pressure_proxy
+      - calc_f
+      - biomass_safeguard
+      - multiplier_lookup
+      - stability_clause
+      - uncertainty_cap
+      - precautionary_buffer
+      - calc_mode
+  - title: Drafts (not exported)
+    contents:
+      - dl_1st_capture
+      - dl_mean
+
+articles:
+  - title: Category 3 advice
+    navbar: ~
+    contents:
+      - rfb-rule
+      - chr-rule
+      - history-tables
+      - stock-choices

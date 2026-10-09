@@ -7,6 +7,8 @@ Authors@R:
 Maintainer: William Butler <will.butler@hafogvatn.is>    
 Description: Set of convenient functions to help users establish empirical advisory rules for ICES category 3 stocks. Sentence number two, just to pass check.
 License: MIT + file LICENSE
+URL: https://github.com/Hafro/dlsrules, https://hafro.github.io/dlsrules/
+BugReports: https://github.com/Hafro/dlsrules/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
@@ -21,6 +23,8 @@ Suggests:
     pax,
     rmarkdown,
     testthat (>= 3.0.0)
+Remotes:
+    github::hafro/pax@smn-survey
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Config/roxygen2/version: 8.1.0
