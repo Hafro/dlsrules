@@ -1,0 +1,245 @@
+---
+title: "The rfb rule, step by step"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{The rfb rule, step by step}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+has_pax <- requireNamespace("pax", quietly = TRUE) &&
+  requireNamespace("duckdb", quietly = TRUE) &&
+  requireNamespace("dbplyr", quietly = TRUE)
+```
+
+The rfb rule (ICES 2025, method 2.1) sets the catch advice of a category 3
+stock with slow growth (von Bertalanffy K < 0.32) from a biomass index and the
+length distribution of the catch:
+
+$$A_{y+1} = A_y \times r \times f \times b \times m$$
+
+* $r$: the index ratio, the mean of the last two index values over the mean of
+  the three before them;
+* $f$: the fishing pressure proxy, the mean length of the catch above L~c~ over
+  the target length L~F=M~ = 0.75 L~c~ + 0.25 L~inf~;
+* $b$: the biomass safeguard, min(1, I~last~ / I~trigger~), with I~trigger~ =
+  1.4 I~loss~;
+* $m$: the precautionary multiplier (0.95 for K < 0.2, 0.9 for 0.2 ≤ K < 0.32);
+
+followed by the stability clause (the advice changes by at most +20% / −30%,
+unless $b < 1$).
+
+The MFRI rfb stocks run it in their targets pipelines: 13-cas, 14-mon, 24-lem,
+25-wit, 26-meg, 27-dab and 60-norway-redfish. This vignette goes through the
+same steps on simulated data. The numbers are made up and belong to no stock.
+
+```{r}
+library(dlsrules)
+```
+
+## Simulated data
+
+The pipelines keep the survey indices as one long table, one row per index
+series and year, with biomass `b`, abundance `n` and their CVs. In the stock
+repos it is built with `pax::pax_si_length_index()` from the spring survey,
+and the series names say which length range they cover (e.g. `smb_harv`, the
+biomass of fish over 30 cm in 25-wit).
+
+```{r}
+set.seed(1)
+years <- 1985:2025
+b <- round(2000 * exp(cumsum(c(0, rnorm(length(years) - 1, 0, 0.15)))))
+survey_index <- rbind(
+  data.frame(
+    index = "smb_harv", year = years, b = b,
+    b_cv = round(runif(length(years), 0.12, 0.3), 2),
+    n = round(b / 0.6), n_cv = 0.2
+  ),
+  data.frame(
+    index = "smb_rec", year = years, b = round(b / 5), b_cv = 0.3,
+    n = round(rlnorm(length(years), log(1500), 0.4)),
+    n_cv = round(runif(length(years), 0.2, 0.4), 2)
+  )
+)
+tail(survey_index[survey_index$index == "smb_harv", ], 6)
+```
+
+The catch length distribution: numbers by year and 1 cm length class.
+
+```{r}
+z <- 0.12 + 0.05 * sin(seq_along(1990:2024) / 4)
+ldist <- expand.grid(length = 20:70, year = 1990:2024)
+ldist$n <- round(
+  2000 * plogis((ldist$length - 32) / 1.5) *
+    exp(-z[ldist$year - 1989] * (ldist$length - 32) / 1.2 * (ldist$length > 32))
+)
+ldist <- ldist[, c("year", "length", "n")]
+head(ldist[ldist$year == 2024 & ldist$length >= 30, ])
+```
+
+## The catch length distribution from a pax database
+
+In a stock repo the length distribution comes from the `pax_db` target with
+`catch_ldist()`. The `ldist` table that `pax::pax_from_mar()` builds is
+**already raised** to the counted fish at import, so `catch_ldist()` only
+rounds the lengths (`pax::pax_ldist_scale_round()`) and does not raise the
+counts a second time. Building the distribution with `pax::pax_ldist_by_year()`
+and its default scaling raises twice: the length distributions of single
+years are then a few percent too high in samples with counted fish (found in
+the 04-whg port).
+
+A toy database with two samples shows the call (pax is in Suggests, and only
+`catch_ldist()` needs it):
+
+```{r, eval = has_pax, message = FALSE}
+con <- DBI::dbConnect(duckdb::duckdb())
+DBI::dbWriteTable(con, "station", data.frame(
+  sample_id = 1:3,
+  sampling_type = c(1, 8, 30), # two commercial samples, one survey tow
+  year = 2024,
+  mfdb_gear_code = c("BMT", "DSE", "BMT")
+))
+DBI::dbWriteTable(con, "ldist", data.frame(
+  sample_id = c(1, 1, 2, 3),
+  species = 25, sex = NA_integer_,
+  length = c(35.4, 40.6, 41, 30),
+  count = c(3, 2, 5, 100)
+))
+catch_ldist(
+  dplyr::tbl(con, "station"),
+  dplyr::tbl(con, "ldist"),
+  gears = c("BMT", "DSE", "NPT"),
+  year_start = 1976
+)
+DBI::dbDisconnect(con, shutdown = TRUE)
+```
+
+The survey tow (sampling type 30) is left out; the defaults are the
+commercial samples at sea and in port (1, 2, 8). The gears and the first
+year are stock choices (25-wit: bottom trawl, Danish seine and Nephrops
+trawl from 1976; 60-norway-redfish: bottom trawl from 1997). With
+`by_gear = TRUE` the gear is kept, and `rule_ldist()` selects from the
+collected table later (see `vignette("stock-choices")`).
+
+## The components
+
+### Index ratio, r
+
+`index_series()` picks one series from the long table, in the form the rules
+take (`year`, `index`). Cut it at the assessment year: the ratio uses the
+last five rows it is given.
+
+```{r}
+assessment_year <- 2025
+index <- index_series(survey_index, "smb_harv", year_end = assessment_year)
+calc_ratio(index, num = 2, den = 3)
+```
+
+### Fishing pressure proxy, f
+
+L~F=M~ comes from L~c~ and L~inf~. The rule uses the mean length above L~c~
+(strictly above) in the year before the assessment year (`lag = 1`): the
+catch sampling of the assessment year is not complete when the advice is
+given.
+
+```{r}
+Lc <- 33
+Linf <- 0.9 * 69 # 25-wit: 0.9 x the largest length in the catch
+target_reference_length(Lc = Lc, Linf = Linf)
+mean_length_above(ldist[ldist$year == assessment_year - 1, ], Lc = Lc)
+fishing_pressure_proxy(ldist, Linf = Linf, Lc = Lc,
+                       assessment_year = assessment_year, lag = 1)$fpp
+```
+
+If the length data has no rows for `assessment_year - lag`, f is `NaN` and
+so is the advice. Check that the last year of the catch distribution is the
+year you expect.
+
+### I~loss~, I~trigger~ and the biomass safeguard, b
+
+I~loss~ has no default: ICES (2025) says the lowest observed index value,
+but the stocks differ (`vignette("stock-choices")`). `calc_iloss()` gives it,
+and `ref_points_iloss()` adds `I_lim` (= I~loss~), `I_lim_year` and
+`I_trigger` to the list of reference points.
+
+```{r}
+calc_iloss(index, method = "min")
+ref_points <- list(K = 0.147, Linf = Linf, Lc = Lc, F_msy_proxy = 1)
+ref_points <- ref_points_iloss(ref_points, index, method = "min")
+str(ref_points)
+biomass_safeguard(
+  Inow = index$index[index$year == assessment_year],
+  Itrigger = ref_points$I_trigger
+)
+```
+
+Always pass `I_trigger` this way. If `ref_points` has neither `I_trigger`
+nor `I_lim`, `rfb_rule()` falls back on 1.4 × the lowest value of the index
+it is given and only says so with `cat()`.
+
+### Multiplier, m, and the stability clause
+
+```{r}
+multiplier_lookup(ref_points$K)
+stability_clause(tac = 2500, prev_tac = 1659, bsg = 1) # capped at +20%
+stability_clause(tac = 900, prev_tac = 1659, bsg = 1)  # capped at -30%
+stability_clause(tac = 900, prev_tac = 1659, bsg = 0.8) # not applied when b < 1
+```
+
+## The advice: `rfb_advice()`
+
+`rfb_advice()` cuts the index at the assessment year, runs `rfb_rule()` and
+returns the components with lower-case names and the assessment year. This
+is the `rfb_prognosis` target of the stock repos.
+
+```{r}
+prognosis <- rfb_advice(
+  index_series(survey_index, "smb_harv"),
+  ldist,
+  ref_points = ref_points,
+  prev_tac = 1659,
+  assessment_year = assessment_year
+)
+prognosis
+```
+
+The product of the components gives the initial advice:
+
+```{r}
+v <- setNames(prognosis$value, prognosis$component)
+v[["previous_catch_advice"]] * v[["index_ratio"]] * v[["fpp_ratio"]] *
+  v[["biomass_safeguard"]] * v[["multiplier"]]
+v[["initial_catch_advice"]]
+```
+
+`index_A`, `index_B` and the I values are rounded in the table; the advice
+is computed from the unrounded values.
+
+In the stock repos the prognosis feeds `hafroreports::hr_advice_table_rfb()`
+(the advice sheet table) and the rfb figures of the tech report, and
+`advice_hist_rows()` (`vignette("history-tables")`).
+
+## Pitfalls
+
+* **Double raising:** use `catch_ldist()` (or `pax::pax_ldist_scale_round()`
+  as its `ldist_tbl`) for the length distribution. The pax `ldist` table is
+  already raised.
+* **Index past the assessment year:** a later year in the index shifts
+  `index_A` and `index_B`. `rfb_advice()` cuts it, `rfb_rule()` does not.
+* **K:** `rfb_rule()` stops for K ≥ 0.32. Use the chr rule
+  (`vignette("chr-rule")`) for 0.32 ≤ K < 0.45.
+* **L~c~ and L~inf~** are fixed between benchmarks in the stock's
+  `config.R`. Don't re-estimate them in each run: they change L~F=M~, f and
+  the F proxy series of the history table.
+* **The previous advice** is the advice for the fishing year that starts in
+  the assessment year minus one, read from `data/advice_hist.csv`. For a
+  biennial advice this is the second year of the previous advice
+  (`vignette("stock-choices")`).
+
+## AI use
+
+This vignette was drafted with Claude (Anthropic) in October 2026 and has
+not yet been checked by a person (MFRI policy on the use of AI). The data
+are simulated.
