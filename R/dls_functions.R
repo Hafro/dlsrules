@@ -52,11 +52,13 @@ calc_f <- function(meanL, Lc, Linf){
 #' @description Calculates I_trigger from I_loss (i.e. I_trigger = I_loss*1.4)
 #'
 #' @param Iloss Iloss
+#' @param factor I_trigger / I_loss (1.4 in ICES 2025)
 #'
 #' @return I_trigger
+#' @seealso [calc_iloss()] and [ref_points_iloss()] for I_loss.
 #' @export
-calc_Itrigger <- function(Iloss){
-  return(1.4*Iloss)
+calc_Itrigger <- function(Iloss, factor = 1.4){
+  return(factor*Iloss)
 }
 
 #' @title Target reference length L_F=M

@@ -4,14 +4,19 @@
 \alias{calc_Itrigger}
 \title{Calculate I_trigger}
 \usage{
-calc_Itrigger(Iloss)
+calc_Itrigger(Iloss, factor = 1.4)
 }
 \arguments{
 \item{Iloss}{Iloss}
+
+\item{factor}{I_trigger / I_loss (1.4 in ICES 2025)}
 }
 \value{
 I_trigger
 }
 \description{
 Calculates I_trigger from I_loss (i.e. I_trigger = I_loss*1.4)
+}
+\seealso{
+\code{\link[=calc_iloss]{calc_iloss()}} and \code{\link[=ref_points_iloss]{ref_points_iloss()}} for I_loss.
 }
