@@ -1,6 +1,6 @@
 Package: dlsrules
 Title: Data-limited stock empirical rules
-Version: 2022-05-31
+Version: 2026-10-09
 Authors@R:
   c(person("William", "Butler", , "will.butler@hafogvatn.is", role = c("aut", "cre")),
     person("Einar", "Hjorleifsson", email = "einarhjorleifsson@gmail.com",role = c("aut")))
