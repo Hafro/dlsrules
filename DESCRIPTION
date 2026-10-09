@@ -9,6 +9,15 @@ Description: Set of convenient functions to help users establish empirical advis
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-Imports: 
+Imports:
+    dplyr,
+    stats,
     tibble
-Config/roxygen2/version: 8.0.0
+Suggests:
+    DBI,
+    dbplyr,
+    duckdb,
+    pax,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.0
