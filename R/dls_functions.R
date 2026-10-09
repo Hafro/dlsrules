@@ -59,9 +59,15 @@ calc_Itrigger <- function(Iloss){
   return(1.4*Iloss)
 }
 
-#' @describeIn calc_f
+#' @title Target reference length L_F=M
+#' @description The target reference length of the fishing pressure proxy of
+#'   the rfb rule and of the harvest rate proxy of the chr rule (ICES 2025):
+#'   L_F=M = 0.75 L_c + 0.25 L_inf, which assumes M/K = 1.5.
 #'
-#' @return Target reference length
+#' @param Lc The length at first capture (defined as the length at 50% of modal abundance)
+#' @param Linf L-infinity from the Von Bertalanffy equation
+#'
+#' @return Target reference length L_F=M
 #' @export
 target_reference_length <- function(Lc, Linf){
   return(0.75*Lc + 0.25*Linf)
