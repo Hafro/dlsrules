@@ -4,3 +4,4 @@
 data-raw
 demos
 docs
+^vignettes/articles$
