@@ -80,3 +80,39 @@ test_that("Index after the assessment year is left out", {
   expect_equal(val(res, "biomass_index"), 717)
   expect_error(hr_index_advice(idx, 0, 0.346, 390, 2020), "No index")
 })
+
+test_that("Isafjardardjup 2026 as the old getData.R: b binary but not applied, change NA", {
+  d <- data.frame(year = 2026, index = 267)
+  isa <- function(I, prev) {
+    hr_index_advice(data.frame(year = 2026, index = I), prev, 0.5, 604, 2026,
+      safeguard = "binary", apply_safeguard = FALSE,
+      stability_limits = c(0.8, 1.2), stability_threshold = 0.5,
+      stability_set = TRUE)
+  }
+  res <- isa(267, 0)
+  expect_equal(val(res, "biomass_safeguard"), 0)
+  expect_equal(val(res, "initial_catch_advice"), 133.5)
+  expect_equal(val(res, "stability_test"), 1)
+  expect_equal(val(res, "catch_advice"), 0)
+  expect_true(is.na(val(res, "advice_change")))
+  # The old rule, as written
+  old_isa <- function(I, prev) {
+    initial <- 0.5 * I
+    flag <- ifelse(abs(1 - initial / prev) > 0.5, 1, 0)
+    dplyr::case_when(
+      flag == 1 & initial > prev ~ 1.2 * prev,
+      flag == 1 & initial < prev ~ 0.8 * prev,
+      TRUE ~ initial
+    )
+  }
+  for (I in c(100, 267, 603, 605, 1500)) {
+    for (prev in c(50, 133.5, 300, 1000)) {
+      expect_equal(val(isa(I, prev), "catch_advice"), old_isa(I, prev), info = paste(I, prev))
+    }
+  }
+  # Above I_trigger b = 1 and the advice is the same
+  expect_equal(val(isa(1500, 700), "biomass_safeguard"), 1)
+  # apply_safeguard = TRUE (default) applies the binary b
+  expect_equal(val(hr_index_advice(d, 100, 0.5, 604, 2026, safeguard = "binary"), "catch_advice"), 0)
+  expect_equal(val(isa(1000, 100), "advice_change"), 20)
+})

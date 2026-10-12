@@ -11,8 +11,11 @@
 #'   \describe{
 #'     \item{`safeguard`}{`"ratio"`: b = min(1, I / I_trigger), ICES;
 #'       `"binary"`: b = 1 if I > I_trigger, otherwise 0 (Arnarfjordur, where
-#'       I_trigger = I_lim); `"none"`: b is computed and shown but not applied
-#'       (Isafjardardjup, Snaefellsnes and offshore shrimp in 2026).}
+#'       I_trigger = I_lim); `"none"`: b = min(1, I / I_trigger) is computed
+#'       and shown but not applied.}
+#'     \item{`apply_safeguard`}{`TRUE` (default) applies b; `FALSE` computes
+#'       b as `safeguard` says and shows it, but doesn't apply it (the old
+#'       Isafjardardjup and Snaefellsnes scripts: b binary, not applied).}
 #'     \item{`safeguard_step`}{`"initial"`: the initial advice is HR x I x b
 #'       and the stability clause applies only when b = 1, as ICES;
 #'       `"final"`: the initial advice is HR x I and b multiplies the advice
@@ -37,8 +40,9 @@
 #'       only matters in Arnarfjordur, where changes under 20% are moved out
 #'       to +/-20%).}
 #'     \item{`change`}{The advice change in the table: `"previous"` 100 x
-#'       (A / A_prev - 1); `"new"` 100 x (1 - A_prev / A), with an infinite
-#'       value shown as -100 (the old shrimp tables).}
+#'       (A / A_prev - 1), `NA` when the previous advice is 0 (undefined; the
+#'       old Isafjardardjup script); `"new"` 100 x (1 - A_prev / A), with an
+#'       infinite value shown as -100 (the old Arnarfjordur table).}
 #'   }
 #'
 #' @param index A data frame with the columns `year` and `index` (see
@@ -48,7 +52,7 @@
 #' @param hr_proxy The harvest rate proxy (target HR).
 #' @param I_trigger The index trigger value (I_lim for the shrimp stocks).
 #' @param assessment_year The assessment year.
-#' @param safeguard,safeguard_step,stability_limits,stability_threshold,stability_when,stability_set,change
+#' @param safeguard,apply_safeguard,safeguard_step,stability_limits,stability_threshold,stability_when,stability_set,change
 #'   See the description.
 #'
 #' @return A tibble with the columns `component`, `value`, `type` and
@@ -75,6 +79,7 @@ hr_index_advice <- function(
   I_trigger,
   assessment_year,
   safeguard = c("ratio", "binary", "none"),
+  apply_safeguard = TRUE,
   safeguard_step = c("initial", "final"),
   stability_limits = NULL,
   stability_threshold = 0,
@@ -105,7 +110,7 @@ hr_index_advice <- function(
     none = min(1, Inow / I_trigger)
   )
   # The factor applied to the advice
-  b_applied <- if (safeguard == "none") 1 else bsg
+  b_applied <- if (safeguard == "none" || !isTRUE(apply_safeguard)) 1 else bsg
 
   initial <- hr_proxy * Inow
   if (safeguard_step == "initial") {
@@ -149,7 +154,8 @@ hr_index_advice <- function(
   }
 
   adv_change <- if (change == "previous") {
-    round(100 * (tac / prev_tac - 1))
+    x <- round(100 * (tac / prev_tac - 1))
+    if (is.finite(x)) x else NA_real_
   } else {
     x <- round(100 * (1 - prev_tac / tac))
     if (is.infinite(x)) -100 else x

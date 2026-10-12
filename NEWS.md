@@ -13,6 +13,13 @@
   the old advice-change formula (`change = "new"`). With the Arnarfjordur
   options it gives the published 2026 advice (248.082 t) and the old
   script's result for any index and previous advice (tests).
+* `hr_index_advice(apply_safeguard = FALSE)`: b is computed as `safeguard`
+  says and shown in the table, but not applied (the old Isafjardardjup and
+  Snaefellsnes scripts: binary b, not applied). With `change = "previous"`
+  the change from a previous advice of 0 is `NA` (undefined; the old
+  Isafjardardjup table), not `Inf`/`NaN`. With the Isafjardardjup options
+  the 2026 advice is 0 t (0.5 x 267 = 133.5 t, capped at 1.2 x 0 by the
+  stability clause), as published.
 
 AI use: Claude (Anthropic) wrote this function, its tests and this entry
 (12 October 2026); nobody has reviewed them yet.

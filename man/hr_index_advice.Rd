@@ -11,6 +11,7 @@ hr_index_advice(
   I_trigger,
   assessment_year,
   safeguard = c("ratio", "binary", "none"),
+  apply_safeguard = TRUE,
   safeguard_step = c("initial", "final"),
   stability_limits = NULL,
   stability_threshold = 0,
@@ -32,7 +33,7 @@ the last index value is the one the advice is based on.}
 
 \item{assessment_year}{The assessment year.}
 
-\item{safeguard, safeguard_step, stability_limits, stability_threshold, stability_when, stability_set, change}{See the description.}
+\item{safeguard, apply_safeguard, safeguard_step, stability_limits, stability_threshold, stability_when, stability_set, change}{See the description.}
 }
 \value{
 A tibble with the columns \code{component}, \code{value}, \code{type} and
@@ -55,8 +56,11 @@ differences from the ICES rules:
 \describe{
 \item{\code{safeguard}}{\code{"ratio"}: b = min(1, I / I_trigger), ICES;
 \code{"binary"}: b = 1 if I > I_trigger, otherwise 0 (Arnarfjordur, where
-I_trigger = I_lim); \code{"none"}: b is computed and shown but not applied
-(Isafjardardjup, Snaefellsnes and offshore shrimp in 2026).}
+I_trigger = I_lim); \code{"none"}: b = min(1, I / I_trigger) is computed
+and shown but not applied.}
+\item{\code{apply_safeguard}}{\code{TRUE} (default) applies b; \code{FALSE} computes
+b as \code{safeguard} says and shows it, but doesn't apply it (the old
+Isafjardardjup and Snaefellsnes scripts: b binary, not applied).}
 \item{\code{safeguard_step}}{\code{"initial"}: the initial advice is HR x I x b
 and the stability clause applies only when b = 1, as ICES;
 \code{"final"}: the initial advice is HR x I and b multiplies the advice
@@ -81,8 +85,9 @@ Arnarfjordur and Isafjardardjup scripts; with their thresholds this
 only matters in Arnarfjordur, where changes under 20\% are moved out
 to +/-20\%).}
 \item{\code{change}}{The advice change in the table: \code{"previous"} 100 x
-(A / A_prev - 1); \code{"new"} 100 x (1 - A_prev / A), with an infinite
-value shown as -100 (the old shrimp tables).}
+(A / A_prev - 1), \code{NA} when the previous advice is 0 (undefined; the
+old Isafjardardjup script); \code{"new"} 100 x (1 - A_prev / A), with an
+infinite value shown as -100 (the old Arnarfjordur table).}
 }
 }
 \examples{
