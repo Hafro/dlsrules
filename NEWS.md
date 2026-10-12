@@ -1,5 +1,17 @@
 # dlsrules 2026-10-09
 
+## rfb rounding option (October 2026, branch `iag`)
+
+* `rfb_rule()` and `rfb_advice()` take `digits`, the rounding of the shown
+  components (index A and B, ratio, last index value, I_trigger and I_loss,
+  advice change). The advice is computed from unrounded values as before.
+  The defaults are the old ones; `c(index = 4, ratio = 4, index_value = 3,
+  change = 2)` reproduces the sea urchin `rfb_rule_round()` table (191-urx),
+  whose relative CPUE index is near 1.
+
+AI use: Claude (Anthropic) wrote this option, its test and this entry (12
+October 2026); nobody has reviewed it yet.
+
 ## Harvest rate x index rule of the shrimp stocks (October 2026, branch `iag`)
 
 * New `hr_index_advice()`: advice = HR proxy x latest survey index, with a

@@ -59,6 +59,14 @@ two_over_three <- function(data,
 #' @param prev_tac The preceding assessment year's tac
 #' @param assessment_year The current assessment year
 #' @param lag Number of years from the assessment year for the length distributions. Normally equal to 1, so that measurements are taken from the most recent complete year. If survey data is used, the most recent survey may have occurred in the assessment year, therefore lag should equal 0.
+#' @param digits Rounding of the shown components (the advice is computed
+#'   from unrounded values): a named vector with `index` (index A and B,
+#'   default 0), `ratio` (the index ratio, default `NA`, not rounded),
+#'   `index_value` (last index value, I_trigger and I_loss, default 0) and
+#'   `change` (the advice change in percent, default 0). Indices on a
+#'   relative scale (e.g. a CPUE index near 1) need more digits, e.g.
+#'   `c(index = 4, ratio = 4, index_value = 3, change = 2)` as the old sea
+#'   urchin `rfb_rule_round()`. Missing names take the default.
 #'
 #' @return A dataframe with the advice for the current year and information used to reach this value. 'final_advice' is the advice after the biomass safeguard is considered, the 'initial_advice' is the value prior to this step.
 #' @export
@@ -67,7 +75,12 @@ rfb_rule <- function(ref_points,
                      len_data,
                      prev_tac,
                      assessment_year,
-                     lag = 1){
+                     lag = 1,
+                     digits = c(index = 0, ratio = NA, index_value = 0, change = 0)){
+
+  digits_default <- c(index = 0, ratio = NA, index_value = 0, change = 0)
+  digits <- c(digits, digits_default[setdiff(names(digits_default), names(digits))])
+  rnd <- function(x, d) if (is.na(d)) x else round(x, d)
   
   if (!('K' %in% names(ref_points))){
     stop("The ref_points list must contain a 'K' element")
@@ -138,15 +151,15 @@ rfb_rule <- function(ref_points,
                    'advice_change'),
                value =
                  c(prev_tac,
-                   round(ratio[ratio$Component %in% c('IndexA', 'IndexB'), 'value'],0),
-                   ratio[ratio$Component == 'ratio', 'value'],
+                   rnd(ratio[ratio$Component %in% c('IndexA', 'IndexB'), 'value'], digits[['index']]),
+                   rnd(ratio[ratio$Component == 'ratio', 'value'], digits[['ratio']]),
                    fpp$meanL, fpp$trl, 
                    fpp$fpp, fpp$trl/fpp$meanL,
-                   round(c(Inow, ref_points$I_trigger, ref_points$I_trigger/1.4), 0), bsg,
+                   rnd(c(Inow, ref_points$I_trigger, ref_points$I_trigger/1.4), digits[['index_value']]), bsg,
                    imult,
                    initial_tac, ifelse(tac == initial_tac, 0, 1),
                    tac,
-                   round((tac-prev_tac)/prev_tac*100, 0)),
+                   rnd((tac-prev_tac)/prev_tac*100, digits[['change']])),
                type =
                  c('advice',
                    rep('stock_biomass_trend', 3),

@@ -4,7 +4,15 @@
 \alias{rfb_rule}
 \title{RFB rule for category 3 stocks}
 \usage{
-rfb_rule(ref_points, index_data, len_data, prev_tac, assessment_year, lag = 1)
+rfb_rule(
+  ref_points,
+  index_data,
+  len_data,
+  prev_tac,
+  assessment_year,
+  lag = 1,
+  digits = c(index = 0, ratio = NA, index_value = 0, change = 0)
+)
 }
 \arguments{
 \item{ref_points}{A list with the following elements: 'K', 'Linf', 'Lc', 'I_lim', 'I_trigger'}
@@ -18,6 +26,15 @@ rfb_rule(ref_points, index_data, len_data, prev_tac, assessment_year, lag = 1)
 \item{assessment_year}{The current assessment year}
 
 \item{lag}{Number of years from the assessment year for the length distributions. Normally equal to 1, so that measurements are taken from the most recent complete year. If survey data is used, the most recent survey may have occurred in the assessment year, therefore lag should equal 0.}
+
+\item{digits}{Rounding of the shown components (the advice is computed
+from unrounded values): a named vector with \code{index} (index A and B,
+default 0), \code{ratio} (the index ratio, default \code{NA}, not rounded),
+\code{index_value} (last index value, I_trigger and I_loss, default 0) and
+\code{change} (the advice change in percent, default 0). Indices on a
+relative scale (e.g. a CPUE index near 1) need more digits, e.g.
+\code{c(index = 4, ratio = 4, index_value = 3, change = 2)} as the old sea
+urchin \code{rfb_rule_round()}. Missing names take the default.}
 }
 \value{
 A dataframe with the advice for the current year and information used to reach this value. 'final_advice' is the advice after the biomass safeguard is considered, the 'initial_advice' is the value prior to this step.

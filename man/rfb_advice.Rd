@@ -4,7 +4,15 @@
 \alias{rfb_advice}
 \title{Advice from the rfb rule}
 \usage{
-rfb_advice(index, ldist, ref_points, prev_tac, assessment_year, lag = 1)
+rfb_advice(
+  index,
+  ldist,
+  ref_points,
+  prev_tac,
+  assessment_year,
+  lag = 1,
+  digits = c(index = 0, ratio = NA, index_value = 0, change = 0)
+)
 }
 \arguments{
 \item{index}{A data frame with the columns \code{year} and \code{index} (see
@@ -23,6 +31,8 @@ columns \code{year}, \code{length} and \code{n} (see \code{\link[=catch_ldist]{c
 
 \item{lag}{Years between the assessment year and the year of the length
 data (see \code{\link[=rfb_rule]{rfb_rule()}}).}
+
+\item{digits}{Rounding of the shown components (see \code{\link[=rfb_rule]{rfb_rule()}}).}
 }
 \value{
 A tibble with the columns \code{component}, \code{value}, \code{type} and
