@@ -6,7 +6,13 @@
 #'   stability clause. [chr_advice()] can't be used: it applies the
 #'   multiplier from K and stops when K < 0.32.
 #'
-#'   The options keep the old scripts reproducible, including their
+#'   The published rule of the inshore shrimp stocks (Arnarfjordur,
+#'   Isafjardardjup) is A = I x HR x b with the binary safeguard and no
+#'   stability clause: `safeguard = "binary"` and the other defaults. The
+#'   remaining options keep the old scripts' code reproducible, including
+#'   leftover lines that are not the published method (October 2026: the
+#'   stability-clause lines of the old Arnarfjordur and Isafjardardjup
+#'   scripts, and their unapplied b), and their
 #'   differences from the ICES rules:
 #'   \describe{
 #'     \item{`safeguard`}{`"ratio"`: b = min(1, I / I_trigger), ICES;
@@ -63,7 +69,10 @@
 #'   the clause changed the advice), `catch_advice` and `advice_change`.
 #' @examples
 #' idx <- data.frame(year = 2024:2026, index = c(489, 277, 717))
-#' # Arnarfjordur 2026, as the old advice/getData.R
+#' # Arnarfjordur 2026 as published: binary safeguard, no clause
+#' hr_index_advice(idx, prev_tac = 0, hr_proxy = 0.346, I_trigger = 390,
+#'   assessment_year = 2026, safeguard = "binary", change = "new")
+#' # The old advice/getData.R as written (with its leftover clause lines)
 #' hr_index_advice(idx, prev_tac = 0, hr_proxy = 0.346, I_trigger = 390,
 #'   assessment_year = 2026, safeguard = "binary", safeguard_step = "final",
 #'   stability_limits = c(0.8, 1.2), stability_threshold = 0.346,

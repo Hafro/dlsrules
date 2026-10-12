@@ -18,8 +18,15 @@
   Snaefellsnes scripts: binary b, not applied). With `change = "previous"`
   the change from a previous advice of 0 is `NA` (undefined; the old
   Isafjardardjup table), not `Inf`/`NaN`. With the Isafjardardjup options
-  the 2026 advice is 0 t (0.5 x 267 = 133.5 t, capped at 1.2 x 0 by the
-  stability clause), as published.
+  the old script's lines give 0 t in 2026 (0.5 x 267 = 133.5 t, capped at
+  1.2 x 0 by the leftover clause), the same as the published rule.
+* Correction (lead, October 2026): the published inshore shrimp rule has no
+  stability clause. Arnarfjordur and Isafjardardjup use A = I x HR x b with
+  the binary safeguard (`safeguard = "binary"`, no `stability_limits`),
+  which reproduces their published advice (Isafjardardjup 2021-2026
+  exactly, Arnarfjordur 2016-2026 within later index revisions). The
+  clause and `apply_safeguard = FALSE` options describe leftover lines of
+  the old scripts and are kept for comparison only.
 
 AI use: Claude (Anthropic) wrote this function, its tests and this entry
 (12 October 2026); nobody has reviewed them yet.

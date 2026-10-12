@@ -116,3 +116,22 @@ test_that("Isafjardardjup 2026 as the old getData.R: b binary but not applied, c
   expect_equal(val(hr_index_advice(d, 100, 0.5, 604, 2026, safeguard = "binary"), "catch_advice"), 0)
   expect_equal(val(isa(1000, 100), "advice_change"), 20)
 })
+
+test_that("Published inshore shrimp rule (HR x I x b, binary b, no clause) reproduces the advice", {
+  # Isafjardardjup: published fishable index, previous advice and advice
+  isa <- data.frame(
+    year = 2021:2026, I = c(48, 1045, 102, 252, 534, 267),
+    prev = c(586, 0, 523, 0, 0, 0), advice = c(0, 523, 0, 0, 0, 0)
+  )
+  for (k in seq_len(nrow(isa))) {
+    res <- hr_index_advice(data.frame(year = isa$year[k], index = isa$I[k]), isa$prev[k],
+      0.5, 604, isa$year[k], safeguard = "binary")
+    # 0.5 x 1045 = 522.5, published 523 (rounded half up)
+    expect_equal(floor(val(res, "catch_advice") + 0.5), isa$advice[k], info = isa$year[k])
+  }
+  # Arnarfjordur 2026 and 2025
+  expect_equal(val(hr_index_advice(data.frame(year = 2026, index = 717), 0, 0.346, 390, 2026,
+    safeguard = "binary", change = "new"), "catch_advice"), 248.082)
+  expect_equal(val(hr_index_advice(data.frame(year = 2025, index = 277), 169, 0.346, 390, 2025,
+    safeguard = "binary"), "catch_advice"), 0)
+})
