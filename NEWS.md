@@ -1,5 +1,22 @@
 # dlsrules 2026-10-09
 
+## Harvest rate x index rule of the shrimp stocks (October 2026, branch `iag`)
+
+* New `hr_index_advice()`: advice = HR proxy x latest survey index, with a
+  biomass safeguard at I_trigger and no precautionary multiplier, the rule
+  of the Icelandic shrimp stocks (`chr_advice()` applies the K-based
+  multiplier and stops when K < 0.32). Options reproduce the old scripts:
+  binary or unapplied safeguard (`safeguard`), safeguard before or after the
+  stability clause (`safeguard_step`), the stability clause's limits,
+  threshold and direction (`stability_limits`, `stability_threshold`,
+  `stability_when`), setting the advice to the limit (`stability_set`), and
+  the old advice-change formula (`change = "new"`). With the Arnarfjordur
+  options it gives the published 2026 advice (248.082 t) and the old
+  script's result for any index and previous advice (tests).
+
+AI use: Claude (Anthropic) wrote this function, its tests and this entry
+(12 October 2026); nobody has reviewed them yet.
+
 Helpers shared by the MFRI category 3 stock assessments (rfb: 13-cas, 14-mon,
 24-lem, 25-wit, 26-meg, 27-dab, 60-norway-redfish; chr: 04-whg), which had
 their own copies of them. The stock repositories call them with their
