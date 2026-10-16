@@ -13,7 +13,15 @@ so a later year would shift index A and B.
 ## Usage
 
 ``` r
-rfb_advice(index, ldist, ref_points, prev_tac, assessment_year, lag = 1)
+rfb_advice(
+  index,
+  ldist,
+  ref_points,
+  prev_tac,
+  assessment_year,
+  lag = 1,
+  digits = c(index = 0, ratio = NA, index_value = 0, change = 0)
+)
 ```
 
 ## Arguments
@@ -47,6 +55,11 @@ rfb_advice(index, ldist, ref_points, prev_tac, assessment_year, lag = 1)
 - lag:
 
   Years between the assessment year and the year of the length data (see
+  [`rfb_rule()`](https://hafro.github.io/dlsrules/reference/rfb_rule.md)).
+
+- digits:
+
+  Rounding of the shown components (see
   [`rfb_rule()`](https://hafro.github.io/dlsrules/reference/rfb_rule.md)).
 
 ## Value

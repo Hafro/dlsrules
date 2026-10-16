@@ -8,6 +8,8 @@ The rule wrappers the stock repositories call.
   : Advice from the rfb rule
 - [`chr_advice()`](https://hafro.github.io/dlsrules/reference/chr_advice.md)
   : Advice from the chr rule
+- [`hr_index_advice()`](https://hafro.github.io/dlsrules/reference/hr_index_advice.md)
+  : Advice from a harvest rate times a survey index
 
 ## Index and I_loss
 
