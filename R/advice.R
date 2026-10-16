@@ -17,6 +17,7 @@
 #' @param assessment_year The assessment year.
 #' @param lag Years between the assessment year and the year of the length
 #'   data (see [rfb_rule()]).
+#' @param digits Rounding of the shown components (see [rfb_rule()]).
 #'
 #' @return A tibble with the columns `component`, `value`, `type` and
 #'   `assessment_year`, with the components of [rfb_rule()].
@@ -27,7 +28,8 @@ rfb_advice <- function(
   ref_points,
   prev_tac,
   assessment_year,
-  lag = 1
+  lag = 1,
+  digits = c(index = 0, ratio = NA, index_value = 0, change = 0)
 ) {
   index <- index[index$year <= assessment_year, c("year", "index")]
   out <- rfb_rule(
@@ -36,7 +38,8 @@ rfb_advice <- function(
     len_data = as.data.frame(ldist),
     prev_tac = prev_tac,
     assessment_year = assessment_year,
-    lag = lag
+    lag = lag,
+    digits = digits
   )
   names(out) <- tolower(names(out))
   out$assessment_year <- assessment_year

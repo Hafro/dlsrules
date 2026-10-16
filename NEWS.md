@@ -1,5 +1,48 @@
 # dlsrules 2026-10-09
 
+## rfb rounding option (October 2026, branch `iag`)
+
+* `rfb_rule()` and `rfb_advice()` take `digits`, the rounding of the shown
+  components (index A and B, ratio, last index value, I_trigger and I_loss,
+  advice change). The advice is computed from unrounded values as before.
+  The defaults are the old ones; `c(index = 4, ratio = 4, index_value = 3,
+  change = 2)` reproduces the sea urchin `rfb_rule_round()` table (191-urx),
+  whose relative CPUE index is near 1.
+
+AI use: Claude (Anthropic) wrote this option, its test and this entry (12
+October 2026); nobody has reviewed it yet.
+
+## Harvest rate x index rule of the shrimp stocks (October 2026, branch `iag`)
+
+* New `hr_index_advice()`: advice = HR proxy x latest survey index, with a
+  biomass safeguard at I_trigger and no precautionary multiplier, the rule
+  of the Icelandic shrimp stocks (`chr_advice()` applies the K-based
+  multiplier and stops when K < 0.32). Options reproduce the old scripts:
+  binary or unapplied safeguard (`safeguard`), safeguard before or after the
+  stability clause (`safeguard_step`), the stability clause's limits,
+  threshold and direction (`stability_limits`, `stability_threshold`,
+  `stability_when`), setting the advice to the limit (`stability_set`), and
+  the old advice-change formula (`change = "new"`). With the Arnarfjordur
+  options it gives the published 2026 advice (248.082 t) and the old
+  script's result for any index and previous advice (tests).
+* `hr_index_advice(apply_safeguard = FALSE)`: b is computed as `safeguard`
+  says and shown in the table, but not applied (the old Isafjardardjup and
+  Snaefellsnes scripts: binary b, not applied). With `change = "previous"`
+  the change from a previous advice of 0 is `NA` (undefined; the old
+  Isafjardardjup table), not `Inf`/`NaN`. With the Isafjardardjup options
+  the old script's lines give 0 t in 2026 (0.5 x 267 = 133.5 t, capped at
+  1.2 x 0 by the leftover clause), the same as the published rule.
+* Correction (lead, October 2026): the published inshore shrimp rule has no
+  stability clause. Arnarfjordur and Isafjardardjup use A = I x HR x b with
+  the binary safeguard (`safeguard = "binary"`, no `stability_limits`),
+  which reproduces their published advice (Isafjardardjup 2021-2026
+  exactly, Arnarfjordur 2016-2026 within later index revisions). The
+  clause and `apply_safeguard = FALSE` options describe leftover lines of
+  the old scripts and are kept for comparison only.
+
+AI use: Claude (Anthropic) wrote this function, its tests and this entry
+(12 October 2026); nobody has reviewed them yet.
+
 Helpers shared by the MFRI category 3 stock assessments (rfb: 13-cas, 14-mon,
 24-lem, 25-wit, 26-meg, 27-dab, 60-norway-redfish; chr: 04-whg), which had
 their own copies of them. The stock repositories call them with their
