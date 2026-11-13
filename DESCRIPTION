@@ -24,7 +24,7 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0)
 Remotes:
-    github::hafro/pax@smn-survey
+    github::hafro/pax@combined
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Config/roxygen2/version: 8.1.0
